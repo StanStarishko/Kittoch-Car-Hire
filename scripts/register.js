@@ -1,32 +1,28 @@
-// Handle registration form submission
-document.getElementById('registerForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const formData = {
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
-        forename: document.getElementById('forename').value,
-        surname: document.getElementById('surname').value,
-        gender: document.getElementById('gender').value,
-        dob: document.getElementById('dob').value,
-    };
+$('#registerForm').submit(async (e) => {
+    e.preventDefault();
+    const email = $('#email').val();
+    const password = $('#password').val();
+    const forename = $('#forename').val();
+    const surname = $('#surname').val();
+    const gender = $('#gender').val();
+    const dob = $('#dob').val();
 
     try {
-        const response = await fetch('/api/employees/register', {
+        const response = await fetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData),
+            body: JSON.stringify({ email, password, forename, surname, gender, dob }),
         });
+
         const result = await response.json();
 
-        if (result.success) {
-            document.getElementById('registerMessage').textContent = 'Registration successful! Please log in.';
-            setTimeout(() => (window.location.href = '../index.html'), 2000);
+        if (response.ok) {
+            window.location.href = '../index.html';
         } else {
-            document.getElementById('registerMessage').textContent = result.message;
+            $('#registerMessage').text(result.error);
         }
     } catch (error) {
-        console.error('Registration failed:', error);
-        document.getElementById('registerMessage').textContent = 'An error occurred. Please try again.';
+        console.error('Error:', error);
+        $('#registerMessage').text('Server error. Try again later.');
     }
 });
