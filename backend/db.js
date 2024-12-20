@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
 
 async function connectToDatabase() {
+    const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/kittoch-car-hire';
+    
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(MONGO_URI);
         console.log("Successfully connected to MongoDB Atlas!");
     } catch (error) {
-        console.error("Error connecting to MongoDB:", error.message);
-        process.exit(1); // Exit the process if the connection fails
+        console.error("Error connecting to MongoDB:", error);
+        throw error;
     }
 }
 

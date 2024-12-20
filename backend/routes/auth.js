@@ -1,46 +1,25 @@
-const Employee = require('./models/Employee');
-const bcrypt = require('bcrypt');
+const express = require('express');
+const router = express.Router();
+const { registerEmployee, authenticateEmployee } = require('../services/authService');
 
-// Register a new employee
-async function registerEmployee(data) {
+// Register employee
+router.post('/register', async (req, res) => {
     try {
-        const existingEmployee = await Employee.findOne({ EmployeeId: data.EmployeeId });
-        if (existingEmployee) {
-            throw new Error("Employee ID already exists.");
-        }
-
-        // Hash the password before saving
-        const hashedPassword = await bcrypt.hash(data.Password, 10);
-
-        const newEmployee = new Employee({
-            ...data,
-            Password: hashedPassword,
-        });
-
-        await newEmployee.save();
-        return { message: "Employee registered successfully!" };
+        const result = await registerEmployee(req.body);
+        res.status(201).json(result);
     } catch (error) {
-        throw new Error(error.message);
+        res.status(400).json({ error: error.message });
     }
-}
+});
 
 // Authenticate employee
-async function authenticateEmployee(email, password) {
+router.post('/login', async (req, res) => {
     try {
-        const employee = await Employee.findOne({ EmployeeId: email });
-        if (!employee) {
-            throw new Error("Employee not found.");
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, employee.Password);
-        if (!isPasswordValid) {
-            throw new Error("Invalid password.");
-        }
-
-        return { message: "Login successful!", employee };
+        const result = await authenticateEmployee(req.body.EmployeeId, req.body.Password);
+        res.status(200).json(result);
     } catch (error) {
-        throw new Error(error.message);
+        res.status(401).json({ error: error.message });
     }
-}
+});
 
-module.exports = { registerEmployee, authenticateEmployee };
+module.exports = router;

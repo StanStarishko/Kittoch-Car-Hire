@@ -1,51 +1,17 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
-const Employee = require('../models/Employee');
 const router = express.Router();
+const Employee = require('../models/Employee');
 
-// Register Employee
-router.post('/register', async (req, res) => {
-    const { email, password, forename, surname, gender, dob } = req.body;
-
+// Get all employees
+router.get('/', async (req, res) => {
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newEmployee = new Employee({
-            email,
-            password: hashedPassword,
-            forename,
-            surname,
-            gender,
-            dob,
-        });
-
-        await newEmployee.save();
-        res.status(201).json({ message: 'Employee registered successfully' });
+        const employees = await Employee.find();
+        res.status(200).json(employees);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Registration failed' });
+        res.status(500).json({ error: err.message });
     }
 });
 
-// Login Employee
-router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-
-    try {
-        const employee = await Employee.findOne({ email });
-        if (!employee) {
-            return res.status(404).json({ error: 'Employee not found' });
-        }
-
-        const isMatch = await bcrypt.compare(password, employee.password);
-        if (!isMatch) {
-            return res.status(400).json({ error: 'Invalid credentials' });
-        }
-
-        res.status(200).json({ message: 'Login successful' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Login failed' });
-    }
-});
+// Other employee-specific routes here...
 
 module.exports = router;
