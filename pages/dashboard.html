@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Kittoch Car Hire</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+    <header class="header bg-dark text-white py-3">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h1>Kittoch Car Hire</h1>
+            <nav>
+                <ul class="nav">
+                    <li class="nav-item"><a href="#" class="nav-link active" id="tabBooking">Booking</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link" id="tabVehicle">Vehicle</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link" id="tabCustomer">Customer</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link" id="tabEmployee">Employee</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mt-5">
+        <div id="content">
+            <!-- Booking Tab (Default Active) -->
+            <div id="tabContentBooking">
+                <h2>Booking</h2>
+                <button class="btn btn-primary mb-3" id="addBooking">Add Booking</button>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Customer Name</th>
+                            <th>Vehicle Info</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+                <button class="btn btn-primary mt-3" id="addBookingBottom">Add Booking</button>
+            </div>
+
+            <!-- Other tabs have similar structure -->
+            <div id="tabContentVehicle" class="d-none">
+                <h2>Vehicle</h2>
+                <button class="btn btn-primary mb-3" id="addVehicle">Add Vehicle</button>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Vehicle ID</th>
+                            <th>Make</th>
+                            <th>Model</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vehicleTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+                <button class="btn btn-primary mt-3" id="addVehicleBottom">Add Vehicle</button>
+            </div>
+
+            <div id="tabContentCustomer" class="d-none">
+                <h2>Customer</h2>
+                <button class="btn btn-primary mb-3" id="addCustomer">Add Customer</button>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Customer ID</th>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+                <button class="btn btn-primary mt-3" id="addCustomerBottom">Add Customer</button>
+            </div>
+
+            <div id="tabContentEmployee" class="d-none">
+                <h2>Employee</h2>
+                <button class="btn btn-primary mb-3" id="addEmployee">Add Employee</button>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Employee ID</th>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+                <button class="btn btn-primary mt-3" id="addEmployeeBottom">Add Employee</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer text-center mt-5">
+        <p>&copy; 2024 Kittoch Car Hire by Stanislav Starishko</p>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../scripts/dashboard.js"></script>
+</body>
+</html>
