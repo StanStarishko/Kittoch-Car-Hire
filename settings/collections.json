@@ -1,0 +1,62 @@
+{
+    "vehicle": {
+        "make": [
+            "Toyota",
+            "Volvo",
+            "BMW",
+            "Ford",
+            "KIA"
+        ],
+        "model": {
+            "Toyota": [
+                "Corolla",
+                "Camry",
+                "RAV4"
+            ],
+            "Volvo": [
+                "XC90",
+                "S60",
+                "V60"
+            ],
+            "BMW": [
+                "X5",
+                "3 Series",
+                "5 Series"
+            ],
+            "Ford": [
+                "Fiesta",
+                "Focus",
+                "Explorer"
+            ],
+            "KIA": [
+                "Rio",
+                "Sorento",
+                "Sportage"
+            ]
+        },
+        "category": [
+            "Sedan",
+            "SUV",
+            "Truck",
+            "Minivan",
+            "Thermo Van"
+        ],
+        "fuel": [
+            "Petrol",
+            "Diesel",
+            "Gas",
+            "Electricity"
+        ]
+    },
+    "customer": {
+        "gender": [
+            "Male",
+            "Female",
+            "Non-binary",
+            "Transgender",
+            "Prefer not to say"
+        ]
+    },
+    "employee": {},
+    "booking": {}
+}

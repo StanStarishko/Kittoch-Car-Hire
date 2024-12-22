@@ -6,6 +6,7 @@
     <title>Dashboard - Kittoch Car Hire</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="../styles/main.css">
+    <link rel="icon" href="../img/Favicon.png" type="image/x-icon">
 </head>
 <body>
     <header class="header bg-primary text-white py-3">
@@ -24,44 +25,44 @@
 
     <main class="container mt-5">
         <div id="content">
-            <!-- Booking Tab (Default Active) -->
             <div id="tabContentBooking">
                 <h2>Booking</h2>
                 <button class="btn btn-primary mb-3" id="addBooking">Add Booking</button>
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Booking ID</th>
-                            <th>Customer Name</th>
-                            <th>Vehicle Info</th>
+                            <th>Booking Date</th>
+                            <th>Customer</th>
+                            <th>Car</th>
+                            <th>Start Date</th>
+                            <th>Pick Up Location</th>
+                            <th>Return Date</th>
+                            <th>Drop Off Location</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="bookingTableBody">
-                        <!-- Dynamic content -->
-                    </tbody>
+                    <tbody id="bookingTableBody"></tbody>
                 </table>
-                <button class="btn btn-primary mt-3" id="addBookingBottom">Add Booking</button>
             </div>
 
-            <!-- Other tabs have similar structure -->
             <div id="tabContentVehicle" class="d-none">
                 <h2>Vehicle</h2>
                 <button class="btn btn-primary mb-3" id="addVehicle">Add Vehicle</button>
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Vehicle ID</th>
-                            <th>Make</th>
-                            <th>Model</th>
+                            <th>Car</th>
+                            <th>Passengers</th>
+                            <th>Capacity</th>
+                            <th>Fuel</th>
+                            <th>Cost Per Day</th>
+                            <th>Availability</th>
+                            <th>Availability Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="vehicleTableBody">
-                        <!-- Dynamic content -->
-                    </tbody>
+                    <tbody id="vehicleTableBody"></tbody>
                 </table>
-                <button class="btn btn-primary mt-3" id="addVehicleBottom">Add Vehicle</button>
             </div>
 
             <div id="tabContentCustomer" class="d-none">
@@ -70,17 +71,17 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Customer ID</th>
-                            <th>Name</th>
+                            <th>Email</th>
+                            <th>First Name</th>
+                            <th>Second Name</th>
+                            <th>Date of Birth</th>
+                            <th>Gender</th>
                             <th>Phone</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="customerTableBody">
-                        <!-- Dynamic content -->
-                    </tbody>
+                    <tbody id="customerTableBody"></tbody>
                 </table>
-                <button class="btn btn-primary mt-3" id="addCustomerBottom">Add Customer</button>
             </div>
 
             <div id="tabContentEmployee" class="d-none">
@@ -89,17 +90,17 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Employee ID</th>
-                            <th>Name</th>
-                            <th>Role</th>
+                            <th>Email</th>
+                            <th>First Name</th>
+                            <th>Second Name</th>
+                            <th>Date of Birth</th>
+                            <th>Gender</th>
+                            <th>Phone</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="employeeTableBody">
-                        <!-- Dynamic content -->
-                    </tbody>
+                    <tbody id="employeeTableBody"></tbody>
                 </table>
-                <button class="btn btn-primary mt-3" id="addEmployeeBottom">Add Employee</button>
             </div>
         </div>
     </main>
