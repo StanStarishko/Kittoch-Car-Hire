@@ -17,6 +17,4 @@ async function authenticateEmployee(EmployeeId, Password) {
     return { message: "Login successful!", employee };
 }
 
-module.exports = {
-    authenticateEmployee
-};
+module.exports = authenticateEmployee;
