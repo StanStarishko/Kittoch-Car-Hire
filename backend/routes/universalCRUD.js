@@ -15,6 +15,27 @@ router.post("/:collection", async (req, res) => {
     try {
         const { collection } = req.params;
         const Model = mongoose.model(collection);
+
+        // Auto-generate ID for Booking
+        if (collection === "Booking") {
+            const { CustomerId, StartDate } = req.body;
+
+            // Validate required fields
+            if (!CustomerId || !StartDate) {
+                return res.status(400).json({ error: "CustomerId and StartDate are required for Booking." });
+            }
+
+            // Format StartDate to YYYY-MM-DD
+            const formattedDate = new Date(StartDate).toISOString().split("T")[0];
+
+            // Count existing bookings for the customer on the same date
+            const bookingCount = await Model.countDocuments({ CustomerId, StartDate });
+            const bookingNum = String(bookingCount + 1).padStart(3, "0");
+
+            // Generate the Booking ID
+            req.body.BookingId = `${CustomerId}_${formattedDate}_${bookingNum}`;
+        }
+
         const newDocument = new Model(req.body);
         const result = await newDocument.save();
         res.status(201).json(result);
@@ -29,6 +50,20 @@ router.get("/:collection", async (req, res) => {
         const { collection } = req.params;
         const Model = mongoose.model(collection);
         const results = await Model.find();
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Filter documents in the specified collection
+router.post("/Filtered/:collection", async (req, res) => {
+    try {
+        const { collection } = req.params;
+        const filters = req.body; // Filters provided in the request body
+        const Model = mongoose.model(collection);
+
+        const results = await Model.find(filters);
         res.status(200).json(results);
     } catch (error) {
         res.status(500).json({ error: error.message });
