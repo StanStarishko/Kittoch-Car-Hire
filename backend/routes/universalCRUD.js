@@ -58,14 +58,27 @@ router.get("/:collection", async (req, res) => {
 
 // Filter documents in the specified collection
 router.post("/Filtered/:collection", async (req, res) => {
+    console.log("Received POST request to /Filtered/:collection"); // Log request arrival
+    console.log("Collection:", req.params.collection); // Log collection name
+    console.log("Filters:", req.body); // Log the filters sent in the body
     try {
         const { collection } = req.params;
         const filters = req.body; // Filters provided in the request body
         const Model = mongoose.model(collection);
 
+        // Debugging: Log collection name and filters
+        console.log("Debug: Collection name received:", collection); // For debugging collection
+        console.log("Debug: Filters received:", filters); // For debugging filters
+
         const results = await Model.find(filters);
+
+        // Debugging: Log results from database query
+        console.log("Debug: Query results:", results); // For debugging query results
+
         res.status(200).json(results);
     } catch (error) {
+        // Debugging: Log error details
+        console.error("Debug: Error occurred:", error.message); // For debugging errors
         res.status(500).json({ error: error.message });
     }
 });
