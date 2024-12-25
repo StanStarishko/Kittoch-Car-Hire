@@ -1,5 +1,5 @@
 $(document).ready(() => {
-    const apiUrl = 'https://kittoch-car-hire.onrender.com/api';
+    const apiUrl = 'https://kittoch-car-hire.onrender.com/api/universalCRUD';
 
     // Handle navigation tabs
     $('.nav-link').click(function () {
@@ -29,6 +29,7 @@ $(document).ready(() => {
     async function loadTableData(endpoint, tableBodySelector, createRow) {
         try {
             const response = await fetch(`${apiUrl}/${endpoint}`);
+            console.log(`Full URL ${apiUrl}/${endpoint}`);
             const data = await response.json();
             const tableBody = $(tableBodySelector);
             tableBody.empty();
@@ -40,7 +41,7 @@ $(document).ready(() => {
 
     // Load booking data into the table
     async function loadBookings() {
-        loadTableData('bookings', '#bookingTableBody', booking => {
+        loadTableData('Booking', '#bookingTableBody', booking => {
             $('#bookingTableBody').append(`
                 <tr>
                     <td>${booking.BookingDate}</td>
@@ -61,7 +62,7 @@ $(document).ready(() => {
 
     // Load vehicle data into the table
     async function loadVehicles() {
-        loadTableData('vehicles', '#vehicleTableBody', vehicle => {
+        loadTableData('Vehicle', '#vehicleTableBody', vehicle => {
             $('#vehicleTableBody').append(`
                 <tr>
                     <td>${vehicle.VehicleId.replace('_', ' ')}</td>
@@ -82,7 +83,7 @@ $(document).ready(() => {
 
     // Load customer data into the table
     async function loadCustomers() {
-        loadTableData('customers', '#customerTableBody', customer => {
+        loadTableData('Customer', '#customerTableBody', customer => {
             $('#customerTableBody').append(`
                 <tr>
                     <td>${customer.CustomerId}</td>
@@ -102,7 +103,7 @@ $(document).ready(() => {
 
     // Load employee data into the table
     async function loadEmployees() {
-        loadTableData('employees', '#employeeTableBody', employee => {
+        loadTableData('Employee', '#employeeTableBody', employee => {
             $('#employeeTableBody').append(`
                 <tr>
                     <td>${employee.EmployeeId}</td>
@@ -125,14 +126,14 @@ $(document).ready(() => {
         const employeeId = $(this).data('id');
         const currentTab = $('.nav-link.active').attr('id');
         sessionStorage.setItem('currentTab', currentTab);
-        window.location.href = `/pages/register.html?id=${employeeId}`;
+        window.location.href = `/frontend/html/addPages.html?id=${employeeId}`;
     });
 
     $(document).on('click', '.delete-employee', async function () {
         const employeeId = $(this).data('id');
         if (confirm('Are you sure you want to delete this record?')) {
             try {
-                const response = await fetch(`${apiUrl}/employees/${employeeId}`, { method: 'DELETE' });
+                const response = await fetch(`${apiUrl}/Employee/${employeeId}`, { method: 'DELETE' });
                 if (response.ok) {
                     alert('Employee deleted successfully.');
                     loadEmployees();
@@ -161,7 +162,7 @@ $(document).ready(() => {
         // Event listener for edit button
         $('#employeesTable').on('click', '.edit-btn', function () {
             const employeeId = $(this).data('id');
-            window.location.href = `/pages/register.html?id=${employeeId}`;
+            window.location.href = `/frontend/html/addPages.html?id=${employeeId}`;
         });
 
     } else {

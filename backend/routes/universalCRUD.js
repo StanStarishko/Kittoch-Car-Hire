@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 // Model Registration
 const Booking = require("../models/Booking");
 const Customer = require("../models/Customer");
+const Vehicle = require("../models/Vehicle");
 
 /**
  * Universal CRUD Routes for collections
