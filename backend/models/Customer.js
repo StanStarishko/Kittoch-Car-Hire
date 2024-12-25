@@ -29,7 +29,7 @@ const customerSchema = new mongoose.Schema({
             placeholder: 'Select gender',
             type: 'select',
             required: true,
-            setting: 'settings.json#customer.gender'
+            setting: '/frontend/settings/collections.json#customer.gender'
         }
     },
     Forename: {

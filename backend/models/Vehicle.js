@@ -19,7 +19,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select or enter make',
             type: 'select',
             required: true,
-            setting: 'settings.json#vehicle.make'
+            setting: '/frontend/settings/collections.json#vehicle.make'
         }
     },
     Model: {
@@ -29,7 +29,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select or enter model',
             type: 'select',
             required: true,
-            setting: 'settings.json#vehicle.model'
+            setting: '/frontend/settings/collections.json#vehicle.model'
         }
     },
     Category: {
@@ -39,7 +39,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select category',
             type: 'select',
             required: true,
-            setting: 'settings.json#vehicle.category'
+            setting: '/frontend/settings/collections.json#vehicle.category'
         }
     },
     Passengers: {
@@ -67,7 +67,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select fuel type',
             type: 'select',
             required: true,
-            setting: 'settings.json#vehicle.fuel'
+            setting: '/frontend/settings/collections.json#vehicle.fuel'
         }
     },
     DateOfPurchase: {
