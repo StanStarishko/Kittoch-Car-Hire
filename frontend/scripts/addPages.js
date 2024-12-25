@@ -1,144 +1,154 @@
-$(document).ready(async () => {
+document.addEventListener('DOMContentLoaded', function() {
     const apiUrl = 'https://kittoch-car-hire.onrender.com/api/universalCRUD';
+    
+    // Get the collection name and record ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const currentId = urlParams.get('id');
-    const currentTab = sessionStorage.getItem('currentTab');
-    const modelType = currentTab ? currentTab.replace('tab', '') : 'Employee';
+    const collection = urlParams.get('collection');
+    const recordId = urlParams.get('id');
+    const returnUrl = urlParams.get('returnUrl') || '/dashboard';
 
-    // Get schema structure from backend
-    async function getModelSchema() {
-        try {
-            const response = await fetch(`${apiUrl}/schema/${modelType}`);
-            if (response.ok) {
-                return await response.json();
-            }
-            throw new Error('Failed to load schema');
-        } catch (error) {
-            console.error('Error loading schema:', error);
-            return null;
-        }
-    }
+    // Update form title
+    const formTitle = document.getElementById('formTitle');
+    formTitle.textContent = recordId ? `Edit ${collection}` : `New ${collection}`;
 
-    // Create form fields based on schema
-    function createFormField(fieldName, fieldProps) {
-        let fieldHtml = '<div class="form-group">';
-        fieldHtml += `<label for="${fieldName}">${fieldName}:</label>`;
-
-        if (fieldProps.type === String) {
-            if (fieldName.toLowerCase().includes('password')) {
-                fieldHtml += `<input type="password" id="${fieldName}" class="form-control" 
-                    ${fieldProps.required ? 'required' : ''}>`;
-            } else if (fieldName.toLowerCase().includes('email') || fieldName.endsWith('Id')) {
-                fieldHtml += `<input type="email" id="${fieldName}" class="form-control" 
-                    ${fieldProps.required ? 'required' : ''}>`;
-            } else {
-                fieldHtml += `<input type="text" id="${fieldName}" class="form-control" 
-                    ${fieldProps.required ? 'required' : ''}>`;
-            }
-        } else if (fieldProps.type === Date) {
-            fieldHtml += `<input type="date" id="${fieldName}" class="form-control" 
-                ${fieldProps.required ? 'required' : ''}>`;
-        } else if (fieldProps.type === Number) {
-            fieldHtml += `<input type="number" id="${fieldName}" class="form-control" 
-                ${fieldProps.required ? 'required' : ''}>`;
-        }
-
-        fieldHtml += '</div>';
-        return fieldHtml;
-    }
-
-    // Initialize form
-    async function initForm() {
-        const schema = await getModelSchema();
-        if (!schema) return;
-
-        $('#formTitle').text(currentId ? `Edit ${modelType}` : `New ${modelType}`);
-        
-        const formFields = Object.entries(schema.paths)
-            .filter(([key]) => key !== '__v' && key !== '_id')
-            .map(([key, value]) => createFormField(key, value))
-            .join('');
-        
-        $('#formFields').html(formFields);
-
-        if (currentId) {
-            loadRecord();
-        }
-    }
-
-    // Load existing record
-    async function loadRecord() {
-        try {
-            const response = await fetch(`${apiUrl}/${modelType}/${currentId}`);
-            if (response.ok) {
-                const data = await response.json();
-                Object.entries(data).forEach(([key, value]) => {
-                    const field = $(`#${key}`);
-                    if (field.length) {
-                        if (field.attr('type') === 'date') {
-                            field.val(value.split('T')[0]);
-                        } else {
-                            field.val(value);
-                        }
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Error loading record:', error);
-            showMessage('Error loading data');
-        }
-    }
-
-    // Form submission
-    $('#universalForm').submit(async (e) => {
-        e.preventDefault();
-
-        const formData = {};
-        $('#formFields input').each(function() {
-            formData[$(this).attr('id')] = $(this).val();
-        });
-
-        try {
-            const method = currentId ? 'PUT' : 'POST';
-            const url = currentId 
-                ? `${apiUrl}/${modelType}/${currentId}`
-                : `${apiUrl}/${modelType}`;
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                alert('Record saved successfully');
-                
-                if (currentId) {
-                    // Return to dashboard for edit
-                    returnToDashboard();
-                } else {
-                    // Clear form for new record
-                    $('#universalForm')[0].reset();
-                }
-            } else {
-                const error = await response.json();
-                alert(error.message || 'Error saving data');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Server error. Please try again later.');
-        }
+    // Handle back button
+    document.getElementById('backButton').addEventListener('click', function() {
+        window.location.href = decodeURIComponent(returnUrl);
     });
 
-    // Return to dashboard
+    // Function to return to dashboard
     function returnToDashboard() {
-        const returnTab = sessionStorage.getItem('currentTab');
-        window.location.href = `/frontend/html/dashboard.html${returnTab ? `#${returnTab}` : ''}`;
+        window.location.href = decodeURIComponent(returnUrl);
     }
 
-    // Back button handler
-    $('#backButton').click(returnToDashboard);
+    // Fetch schema and populate form
+    fetch(`${apiUrl}/schema/${collection}`)
+        .then(response => response.json())
+        .then(schema => {
+            const formFields = document.getElementById('formFields');
+            
+            // Create form fields based on schema
+            Object.entries(schema).forEach(([fieldName, field]) => {
+                if (fieldName !== '_id' && fieldName !== '__v' && fieldName !== 'createdAt' && fieldName !== 'updatedAt') {
+                    const metadata = field.metadata;
+                    const div = document.createElement('div');
+                    div.className = 'form-group';
 
-    // Initialize
-    initForm();
+                    // Create label
+                    const label = document.createElement('label');
+                    label.htmlFor = fieldName;
+                    label.textContent = metadata.label;
+                    div.appendChild(label);
+
+                    // Create input field
+                    let input;
+                    if (metadata.type === 'select') {
+                        input = document.createElement('select');
+                        if (metadata.setting) {
+                            // Fetch options from settings file if specified
+                            fetchOptionsForSelect(input, metadata.setting);
+                        }
+                    } else if (metadata.type === 'checkbox') {
+                        input = document.createElement('input');
+                        input.type = 'checkbox';
+                    } else {
+                        input = document.createElement('input');
+                        input.type = metadata.type;
+                    }
+
+                    input.id = fieldName;
+                    input.name = fieldName;
+                    input.className = metadata.type === 'checkbox' ? 'form-check-input' : 'form-control';
+                    input.placeholder = metadata.placeholder;
+                    input.required = metadata.required;
+
+                    div.appendChild(input);
+                    formFields.appendChild(div);
+                }
+            });
+
+            // If editing, fetch and populate existing data
+            if (recordId) {
+                fetch(`${apiUrl}/${collection}/${recordId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        Object.entries(data).forEach(([key, value]) => {
+                            const input = document.getElementById(key);
+                            if (input) {
+                                if (input.type === 'checkbox') {
+                                    input.checked = value;
+                                } else if (input.type === 'date') {
+                                    input.value = new Date(value).toISOString().split('T')[0];
+                                } else {
+                                    input.value = value;
+                                }
+                            }
+                        });
+                    });
+            }
+
+            // Handle form submission
+            document.getElementById('universalForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const formData = {};
+                const inputs = this.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    if (input.type === 'checkbox') {
+                        formData[input.name] = input.checked;
+                    } else {
+                        formData[input.name] = input.value;
+                    }
+                });
+
+                try {
+                    const method = recordId ? 'PUT' : 'POST';
+                    const url = recordId 
+                        ? `${apiUrl}/${collection}/${recordId}`
+                        : `${apiUrl}/${collection}`;
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        alert('Record saved successfully');
+                        if (recordId) {
+                            returnToDashboard();
+                        } else {
+                            $('#universalForm')[0].reset();
+                        }
+                    } else {
+                        const error = await response.json();
+                        alert(error.message || 'Error saving data');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Server error. Please try again later.');
+                }
+            });
+        });
 });
+
+// Function to fetch options for select fields
+async function fetchOptionsForSelect(selectElement, settingPath) {
+    try {
+        const [filename, path] = settingPath.split('#');
+        const response = await fetch(`${apiUrl}/settings/${filename}`);
+        const settings = await response.json();
+        
+        // Navigate to the correct path in the settings object
+        const options = path.split('.').reduce((obj, key) => obj[key], settings);
+        
+        options.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option;
+            optionElement.textContent = option;
+            selectElement.appendChild(optionElement);
+        });
+    } catch (error) {
+        console.error('Error fetching options:', error);
+    }
+}
