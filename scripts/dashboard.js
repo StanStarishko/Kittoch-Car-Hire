@@ -122,7 +122,7 @@ $(document).ready(() => {
                     <td>${employee.Phone}</td>
                     <td>
                         <button class="btn btn-warning btn-sm edit-employee" data-id="${employee.EmployeeId}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-employee" data-id="${employee.EmployeeId}">Delete</button>
+                        <button class="bi bi-file-earmark-x delete-employee" data-id="${employee.EmployeeId}">Delete</button>
                     </td>
                 </tr>
             `);

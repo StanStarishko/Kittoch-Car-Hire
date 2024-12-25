@@ -134,6 +134,13 @@ router.post("/filtered/:collection", async (req, res) => {
     }
 });
 
+// Get model parameters
+router.get('/schema/:model', async (req, res) => {
+    const modelName = req.params.model;
+    const Model = mongoose.model(modelName);
+    res.json(Model.schema);
+});
+
 // Add a new document to the specified collection
 router.post("/:collection", async (req, res) => {
     try {

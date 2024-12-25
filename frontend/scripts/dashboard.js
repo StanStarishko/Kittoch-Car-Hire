@@ -1,6 +1,12 @@
 $(document).ready(() => {
     const apiUrl = 'https://kittoch-car-hire.onrender.com/api/universalCRUD';
 
+    // Helper function to format dates as YYYY-MM-DD
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+    }
+
     // Handle navigation tabs
     $('.nav-link').click(function () {
         $('.nav-link').removeClass('active');
@@ -25,11 +31,24 @@ $(document).ready(() => {
         });
     });
 
+    // Create Buttons Edit and Delete
+    function createActionButtons(id) {
+        return `
+            <div class="btn-group">
+                <button class="btn btn-link edit-btn" data-id="${id}">
+                    <i class="bi bi-pencil-square" style="color: black"></i>
+                </button>
+                <button class="btn btn-link delete-btn" data-id="${id}">
+                    <i class="bi bi-x-circle" style="color: red;"></i>
+                </button>
+            </div>
+        `;
+    }    
+
     // Generic function to load data and populate tables
     async function loadTableData(endpoint, tableBodySelector, createRow) {
         try {
             const response = await fetch(`${apiUrl}/${endpoint}`);
-            console.log(`Full URL ${apiUrl}/${endpoint}`);
             const data = await response.json();
             const tableBody = $(tableBodySelector);
             tableBody.empty();
@@ -44,17 +63,14 @@ $(document).ready(() => {
         loadTableData('Booking', '#bookingTableBody', booking => {
             $('#bookingTableBody').append(`
                 <tr>
-                    <td>${booking.BookingDate}</td>
+                    <td>${formatDate(booking.BookingDate)}</td>
                     <td>${booking.CustomerId}</td>
                     <td>${booking.CarId}</td>
                     <td>${formatDate(booking.StartDate)}</td>
                     <td>${booking.PickupLocation}</td>
                     <td>${formatDate(booking.ReturnDate)}</td>
                     <td>${booking.DropoffLocation}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm edit-booking" data-id="${booking.id}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-booking" data-id="${booking.id}">Delete</button>
-                    </td>
+                    <td>${createActionButtons(booking.BookingId)}</td>
                 </tr>
             `);
         });
@@ -72,10 +88,7 @@ $(document).ready(() => {
                     <td>${vehicle.CostPerDay}</td>
                     <td>${vehicle.Availability}</td>
                     <td>${formatDate(vehicle.AvailabilityDate)}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm edit-vehicle" data-id="${vehicle.id}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-vehicle" data-id="${vehicle.id}">Delete</button>
-                    </td>
+                    <td>${createActionButtons(vehicle.VehicleId)}</td>
                 </tr>
             `);
         });
@@ -92,10 +105,7 @@ $(document).ready(() => {
                     <td>${formatDate(customer.DateOfBirth)}</td>
                     <td>${customer.Gender}</td>
                     <td>${customer.Phone}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm edit-customer" data-id="${customer.id}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-customer" data-id="${customer.id}">Delete</button>
-                    </td>
+                    <td>${createActionButtons(customer.CustomerId)}</td>
                 </tr>
             `);
         });
@@ -112,28 +122,26 @@ $(document).ready(() => {
                     <td>${formatDate(employee.DateOfBirth)}</td>
                     <td>${employee.Gender}</td>
                     <td>${employee.Phone}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm edit-employee" data-id="${employee.EmployeeId}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-employee" data-id="${employee.EmployeeId}">Delete</button>
-                    </td>
+                    <td>${createActionButtons(employee.EmployeeId)}</td>
                 </tr>
             `);
         });
     }
 
     // Handle clicks on "edit" and "delete" buttons for employees
-    $(document).on('click', '.edit-employee', function () {
-        const employeeId = $(this).data('id');
+    $(document).on('click', '.edit-btn', function () {
+        const currentId = $(this).data('id');
         const currentTab = $('.nav-link.active').attr('id');
         sessionStorage.setItem('currentTab', currentTab);
-        window.location.href = `/frontend/html/addPages.html?id=${employeeId}`;
+        window.location.href = `/frontend/html/addPages.html?id=${currentId}`;
     });
 
-    $(document).on('click', '.delete-employee', async function () {
-        const employeeId = $(this).data('id');
+    $(document).on('click', '.delete-btn', async function () {
+        e.preventDefault();
+        const currentId = $(this).data('id');
         if (confirm('Are you sure you want to delete this record?')) {
             try {
-                const response = await fetch(`${apiUrl}/Employee/${employeeId}`, { method: 'DELETE' });
+                const response = await fetch(`${apiUrl}/Employee/${currentId}`, { method: 'DELETE' });
                 if (response.ok) {
                     alert('Employee deleted successfully.');
                     loadEmployees();
