@@ -10,6 +10,129 @@ const Customer = require("../models/Customer");
  * Universal CRUD Routes for collections
  */
 
+
+// Middleware for request logging
+router.use((req, res, next) => {
+    console.log('Incoming request:', {
+        method: req.method,
+        url: req.originalUrl,
+        params: req.params,
+        body: req.body,
+        query: req.query
+    });
+    next();
+});
+
+/**
+ * Enhanced filter route with advanced querying capabilities
+ * Supports:
+ * - Date range queries
+ * - Pagination
+ * - Sorting
+ * - Field selection
+ * - Text search
+ */
+router.post("/filtered/:collection", async (req, res) => {
+    try {
+        const { collection } = req.params;
+        const {
+            filters = {},         // Basic filters
+            dateRanges = {},      // Date range filters
+            page = 1,             // Current page
+            limit = 10,           // Items per page
+            sortBy = {},          // Sorting parameters
+            fields = [],          // Fields to return
+            search = ""           // Global search term
+        } = req.body;
+
+        if (!mongoose.models[collection]) {
+            return res.status(404).json({
+                error: `Collection ${collection} not found`,
+                availableCollections: Object.keys(mongoose.models)
+            });
+        }
+
+        const Model = mongoose.model(collection);
+        
+        // Build query object
+        let query = {};
+
+        // Add basic filters
+        Object.keys(filters).forEach(key => {
+            if (filters[key]) {
+                query[key] = filters[key];
+            }
+        });
+
+        // Add date range filters
+        Object.keys(dateRanges).forEach(dateField => {
+            const { start, end } = dateRanges[dateField];
+            if (start || end) {
+                query[dateField] = {};
+                if (start) query[dateField].$gte = new Date(start);
+                if (end) query[dateField].$lte = new Date(end);
+            }
+        });
+
+        // Add text search if provided
+        if (search) {
+            const searchFields = Model.schema.obj;
+            const searchQueries = Object.keys(searchFields)
+                .filter(field => 
+                    ['String', 'Number'].includes(searchFields[field].type?.name))
+                .map(field => ({ [field]: new RegExp(search, 'i') }));
+            
+            if (searchQueries.length > 0) {
+                query.$or = searchQueries;
+            }
+        }
+
+        // Build sort object
+        const sort = {};
+        Object.keys(sortBy).forEach(field => {
+            sort[field] = sortBy[field] === 'desc' ? -1 : 1;
+        });
+
+        // Calculate pagination
+        const skip = (page - 1) * limit;
+
+        // Select specific fields if provided
+        const fieldSelection = fields.length > 0 
+            ? fields.join(' ') 
+            : '';
+
+        // Execute query with all parameters
+        const results = await Model
+            .find(query)
+            .select(fieldSelection)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // Get total count for pagination
+        const total = await Model.countDocuments(query);
+
+        // Send response with pagination info
+        res.status(200).json({
+            results,
+            pagination: {
+                total,
+                page: parseInt(page),
+                pages: Math.ceil(total / limit),
+                limit: parseInt(limit)
+            }
+        });
+
+    } catch (error) {
+        console.error('Filter endpoint error:', error);
+        res.status(500).json({
+            error: error.message,
+            details: "Server error in filtered endpoint"
+        });
+    }
+});
+
 // Add a new document to the specified collection
 router.post("/:collection", async (req, res) => {
     try {
@@ -52,33 +175,6 @@ router.get("/:collection", async (req, res) => {
         const results = await Model.find();
         res.status(200).json(results);
     } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Filter documents in the specified collection
-router.post("/Filtered/:collection", async (req, res) => {
-    console.log("Received POST request to /Filtered/:collection"); // Log request arrival
-    console.log("Collection:", req.params.collection); // Log collection name
-    console.log("Filters:", req.body); // Log the filters sent in the body
-    try {
-        const { collection } = req.params;
-        const filters = req.body; // Filters provided in the request body
-        const Model = mongoose.model(collection);
-
-        // Debugging: Log collection name and filters
-        console.log("Debug: Collection name received:", collection); // For debugging collection
-        console.log("Debug: Filters received:", filters); // For debugging filters
-
-        const results = await Model.find(filters);
-
-        // Debugging: Log results from database query
-        console.log("Debug: Query results:", results); // For debugging query results
-
-        res.status(200).json(results);
-    } catch (error) {
-        // Debugging: Log error details
-        console.error("Debug: Error occurred:", error.message); // For debugging errors
         res.status(500).json({ error: error.message });
     }
 });

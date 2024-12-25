@@ -13,7 +13,7 @@ $('#loginForm').submit(async (e) => {
         const result = await response.json();
 
         if (response.ok) {
-            window.location.href = '/pages/dashboard.html';
+            window.location.href = '/frontend/html/dashboard.html';
         } else {
             $('#loginMessage').text(result.error);
         }

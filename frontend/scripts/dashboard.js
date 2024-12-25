@@ -12,27 +12,18 @@ $(document).ready(() => {
     });
 
     // Redirect to respective pages for adding new records
-    $('#addBooking').click(() => {
-        window.location.href = '/pages/addBooking.html';
-    });
+    const redirectPage = "/frontend/html/addPages.html";
+    const buttons = [   '#addBooking', 
+                        '#addVehicle', 
+                        '#addCustomer', 
+                        '#addEmployee'
+                    ];
 
-    $('#addVehicle').click(() => {
-        window.location.href = '/pages/addVehicle.html';
+    buttons.forEach(button => {
+        $(button).click(() => {
+            window.location.href = redirectPage;
+        });
     });
-
-    $('#addCustomer').click(() => {
-        window.location.href = '/pages/addCustomer.html';
-    });
-
-    $('#addEmployee').click(() => {
-        window.location.href = '/pages/register.html';
-    });
-
-    // Helper function to format dates as YYYY-MM-DD
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0];
-    }
 
     // Generic function to load data and populate tables
     async function loadTableData(endpoint, tableBodySelector, createRow) {
