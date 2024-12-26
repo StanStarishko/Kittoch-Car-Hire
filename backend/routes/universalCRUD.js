@@ -7,12 +7,21 @@ const Booking = require("../models/Booking");
 const Customer = require("../models/Customer");
 const Vehicle = require("../models/Vehicle");
 
-/**
- * Universal CRUD Routes for collections
- */
+// CORS Middleware
+router.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Handle OPTIONS method
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    
+    next();
+});
 
-
-// Middleware for request logging
+// Request logging middleware
 router.use((req, res, next) => {
     console.log('Incoming request:', {
         method: req.method,
@@ -23,6 +32,11 @@ router.use((req, res, next) => {
     });
     next();
 });
+
+
+/**
+ * Universal CRUD Routes for collections
+ */
 
 /**
  * Enhanced filter route with advanced querying capabilities

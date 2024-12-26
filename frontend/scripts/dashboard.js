@@ -1,67 +1,123 @@
 $(document).ready(() => {
     const apiUrl = 'https://kittoch-car-hire.onrender.com/api/universalCRUD';
+    let isLoading = false;
 
-    // Helper function to format dates as YYYY-MM-DD
+    // Helper function to format dates
     function formatDate(dateString) {
+        if (!dateString) return '';
         const date = new Date(dateString);
         return date.toISOString().split('T')[0];
     }
 
-    // Handle navigation tabs
-    $('.nav-link').click(function () {
+    // Show loading state
+    function showLoading(tableBodySelector) {
+        const tableBody = $(tableBodySelector);
+        tableBody.html('<tr><td colspan="8" class="text-center">Loading...</td></tr>');
+    }
+
+    // Show error state
+    function showError(tableBodySelector, error) {
+        const tableBody = $(tableBodySelector);
+        tableBody.html(`<tr><td colspan="8" class="text-center text-danger">Error: ${error}</td></tr>`);
+    }
+
+    // Handle navigation tabs with URL state
+    function initializeTabs() {
+        // Get active tab from URL or sessionStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('activeTab') || sessionStorage.getItem('activeTab') || 'tabBooking';
+        
+        // Activate the correct tab
+        $(`#${activeTab}`).click();
+        
+        // Update URL without reload
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('activeTab', activeTab);
+        window.history.pushState({}, '', newUrl);
+    }
+
+    $('.nav-link').click(function(e) {
+        e.preventDefault();
+        const tabId = $(this).attr('id');
+        
+        // Update UI
         $('.nav-link').removeClass('active');
         $(this).addClass('active');
-
-        const tabId = $(this).attr('id').replace('tab', 'tabContent');
         $('#content > div').addClass('d-none');
-        $(`#${tabId}`).removeClass('d-none');
+        $(`#tabContent${tabId.replace('tab', '')}`).removeClass('d-none');
+        
+        // Update session storage and URL
+        sessionStorage.setItem('activeTab', tabId);
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('activeTab', tabId);
+        window.history.pushState({}, '', newUrl);
+        
+        // Load data for the active tab
+        loadDataForTab(tabId);
     });
 
-    // Redirect to respective pages for adding new records
-    const redirectPage = "/frontend/html/addPages.html";
-    const buttons = [   '#addBooking', 
-                        '#addVehicle', 
-                        '#addCustomer', 
-                        '#addEmployee'
-                    ];
+    // Add buttons handlers
+    const collections = {
+        'addBooking': 'Booking',
+        'addVehicle': 'Vehicle',
+        'addCustomer': 'Customer',
+        'addEmployee': 'Employee'
+    };
 
-    buttons.forEach(button => {
-        $(button).click(() => {
-            window.location.href = redirectPage;
+    Object.entries(collections).forEach(([buttonId, collection]) => {
+        $(`#${buttonId}`).click(() => {
+            const activeTab = $('.nav-link.active').attr('id');
+            const returnUrl = encodeURIComponent(`${window.location.pathname}?activeTab=${activeTab}`);
+            window.location.href = `/frontend/html/addPages.html?collection=${collection}&returnUrl=${returnUrl}`;
         });
     });
 
-    // Create Buttons Edit and Delete
-    function createActionButtons(id) {
+    // Action buttons creator
+    function createActionButtons(id, collection) {
         return `
             <div class="btn-group">
-                <button class="btn btn-link edit-btn" data-id="${id}">
+                <button class="btn btn-link edit-btn" data-id="${id}" data-collection="${collection}">
                     <i class="bi bi-pencil-square" style="color: black"></i>
                 </button>
-                <button class="btn btn-link delete-btn" data-id="${id}">
+                <button class="btn btn-link delete-btn" data-id="${id}" data-collection="${collection}">
                     <i class="bi bi-x-circle" style="color: red;"></i>
                 </button>
             </div>
         `;
     }    
 
-    // Generic function to load data and populate tables
-    async function loadTableData(endpoint, tableBodySelector, createRow) {
+    // Generic data loader
+    async function loadTableData(collection, tableBodySelector, createRow) {
+        if (isLoading) return;
+        isLoading = true;
+        showLoading(tableBodySelector);
+
         try {
-            const response = await fetch(`${apiUrl}/${endpoint}`);
+            const response = await fetch(`${apiUrl}/${collection}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
+            
             const tableBody = $(tableBodySelector);
             tableBody.empty();
-            data.forEach(createRow);
+            
+            if (data.length === 0) {
+                tableBody.html('<tr><td colspan="8" class="text-center">No data available</td></tr>');
+                return;
+            }
+
+            data.forEach(item => createRow(item, tableBody, collection));
         } catch (error) {
-            console.error(`Error loading data from ${endpoint}:`, error);
+            console.error(`Error loading ${collection}:`, error);
+            showError(tableBodySelector, error.message);
+        } finally {
+            isLoading = false;
         }
     }
 
-    // Load booking data into the table
-    async function loadBookings() {
-        loadTableData('Booking', '#bookingTableBody', booking => {
-            $('#bookingTableBody').append(`
+    // Table data loaders
+    const loadBookings = () => loadTableData('Booking', '#bookingTableBody', 
+        (booking, tableBody) => {
+            tableBody.append(`
                 <tr>
                     <td>${formatDate(booking.BookingDate)}</td>
                     <td>${booking.CustomerId}</td>
@@ -70,16 +126,15 @@ $(document).ready(() => {
                     <td>${booking.PickupLocation}</td>
                     <td>${formatDate(booking.ReturnDate)}</td>
                     <td>${booking.DropoffLocation}</td>
-                    <td>${createActionButtons(booking.BookingId)}</td>
+                    <td>${createActionButtons(booking.BookingId, 'Booking')}</td>
                 </tr>
             `);
-        });
-    }
+        }
+    );
 
-    // Load vehicle data into the table
-    async function loadVehicles() {
-        loadTableData('Vehicle', '#vehicleTableBody', vehicle => {
-            $('#vehicleTableBody').append(`
+    const loadVehicles = () => loadTableData('Vehicle', '#vehicleTableBody',
+        (vehicle, tableBody) => {
+            tableBody.append(`
                 <tr>
                     <td>${vehicle.VehicleId.replace('_', ' ')}</td>
                     <td>${vehicle.Passengers}</td>
@@ -88,16 +143,15 @@ $(document).ready(() => {
                     <td>${vehicle.CostPerDay}</td>
                     <td>${vehicle.Availability}</td>
                     <td>${formatDate(vehicle.AvailabilityDate)}</td>
-                    <td>${createActionButtons(vehicle.VehicleId)}</td>
+                    <td>${createActionButtons(vehicle.VehicleId, 'Vehicle')}</td>
                 </tr>
             `);
-        });
-    }
+        }
+    );
 
-    // Load customer data into the table
-    async function loadCustomers() {
-        loadTableData('Customer', '#customerTableBody', customer => {
-            $('#customerTableBody').append(`
+    const loadCustomers = () => loadTableData('Customer', '#customerTableBody',
+        (customer, tableBody) => {
+            tableBody.append(`
                 <tr>
                     <td>${customer.CustomerId}</td>
                     <td>${customer.Forename}</td>
@@ -105,16 +159,15 @@ $(document).ready(() => {
                     <td>${formatDate(customer.DateOfBirth)}</td>
                     <td>${customer.Gender}</td>
                     <td>${customer.Phone}</td>
-                    <td>${createActionButtons(customer.CustomerId)}</td>
+                    <td>${createActionButtons(customer.CustomerId, 'Customer')}</td>
                 </tr>
             `);
-        });
-    }
+        }
+    );
 
-    // Load employee data into the table
-    async function loadEmployees() {
-        loadTableData('Employee', '#employeeTableBody', employee => {
-            $('#employeeTableBody').append(`
+    const loadEmployees = () => loadTableData('Employee', '#employeeTableBody',
+        (employee, tableBody) => {
+            tableBody.append(`
                 <tr>
                     <td>${employee.EmployeeId}</td>
                     <td>${employee.Forename}</td>
@@ -122,61 +175,57 @@ $(document).ready(() => {
                     <td>${formatDate(employee.DateOfBirth)}</td>
                     <td>${employee.Gender}</td>
                     <td>${employee.Phone}</td>
-                    <td>${createActionButtons(employee.EmployeeId)}</td>
+                    <td>${createActionButtons(employee.EmployeeId, 'Employee')}</td>
                 </tr>
             `);
-        });
+        }
+    );
+
+    // Load data based on active tab
+    function loadDataForTab(tabId) {
+        switch(tabId) {
+            case 'tabBooking': loadBookings(); break;
+            case 'tabVehicle': loadVehicles(); break;
+            case 'tabCustomer': loadCustomers(); break;
+            case 'tabEmployee': loadEmployees(); break;
+        }
     }
 
-    // Handle clicks on "edit" and "delete" buttons for employees
-    $(document).on('click', '.edit-btn', function () {
-        const currentId = $(this).data('id');
-        const currentTab = $('.nav-link.active').attr('id');
-        sessionStorage.setItem('currentTab', currentTab);
-        window.location.href = `/frontend/html/addPages.html?id=${currentId}`;
+    // Handle edit and delete actions
+    $(document).on('click', '.edit-btn', function() {
+        const id = $(this).data('id');
+        const collection = $(this).data('collection');
+        const activeTab = $('.nav-link.active').attr('id');
+        const returnUrl = encodeURIComponent(`${window.location.pathname}?activeTab=${activeTab}`);
+        window.location.href = `/frontend/html/addPages.html?collection=${collection}&id=${id}&returnUrl=${returnUrl}`;
     });
 
-    $(document).on('click', '.delete-btn', async function () {
-        e.preventDefault();
-        const currentId = $(this).data('id');
-        if (confirm('Are you sure you want to delete this record?')) {
+    $(document).on('click', '.delete-btn', async function() {
+        const id = $(this).data('id');
+        const collection = $(this).data('collection');
+        
+        if (confirm(`Are you sure you want to delete this ${collection}?`)) {
             try {
-                const response = await fetch(`${apiUrl}/Employee/${currentId}`, { method: 'DELETE' });
-                if (response.ok) {
-                    alert('Employee deleted successfully.');
-                    loadEmployees();
-                } else {
-                    alert('Failed to delete employee.');
-                }
+                const response = await fetch(`${apiUrl}/${collection}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error(`Failed to delete ${collection}`);
+                
+                alert(`${collection} deleted successfully`);
+                loadDataForTab($('.nav-link.active').attr('id'));
             } catch (error) {
-                console.error('Error deleting employee:', error);
-                alert('An error occurred while deleting the employee.');
+                console.error('Delete error:', error);
+                alert(`Error deleting ${collection}: ${error.message}`);
             }
         }
     });
 
-    // Automatically switch to the last active tab, if applicable
-    const currentTab = sessionStorage.getItem('currentTab');
-    if (currentTab) {
-        $(`#${currentTab}`).click();
-        sessionStorage.removeItem('currentTab');
-
-        // Check if we need to refresh employees list
-        if (localStorage.getItem('refreshEmployees') === 'true') {
-            localStorage.removeItem('refreshEmployees'); // Clear flag
-            loadEmployees(); // Refresh employees
-        }
-
-        // Event listener for edit button
-        $('#employeesTable').on('click', '.edit-btn', function () {
-            const employeeId = $(this).data('id');
-            window.location.href = `/frontend/html/addPages.html?id=${employeeId}`;
-        });
-
-    } else {
-        loadBookings();
-        loadVehicles();
-        loadCustomers();
-        loadEmployees();
+    // Check for refresh flag
+    if (sessionStorage.getItem('dashboardNeedsRefresh') === 'true') {
+        sessionStorage.removeItem('dashboardNeedsRefresh');
     }
+
+    // Initialize the dashboard
+    initializeTabs();
 });

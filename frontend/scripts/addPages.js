@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const collection = urlParams.get('collection');
     const recordId = urlParams.get('id');
-    const returnUrl = urlParams.get('returnUrl') || '/dashboard';
+    const returnUrl = urlParams.get('returnUrl') || '/frontend/html/dashboard.html';
 
     // Update form title
     const formTitle = document.getElementById('formTitle');
