@@ -29,7 +29,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select or enter model',
             type: 'select',
             required: true,
-            setting: '/frontend/settings/collections.json#vehicle.model'
+            setting: '/frontend/settings/collections.json#vehicle.make.model'
         }
     },
     Category: {

@@ -1,38 +1,41 @@
 {
     "vehicle": {
-        "make": [
-            "Toyota",
-            "Volvo",
-            "BMW",
-            "Ford",
-            "KIA"
-        ],
-        "model": {
-            "Toyota": [
-                "Corolla",
-                "Camry",
-                "RAV4"
-            ],
-            "Volvo": [
-                "XC90",
-                "S60",
-                "V60"
-            ],
-            "BMW": [
-                "X5",
-                "3 Series",
-                "5 Series"
-            ],
-            "Ford": [
-                "Fiesta",
-                "Focus",
-                "Explorer"
-            ],
-            "KIA": [
-                "Rio",
-                "Sorento",
-                "Sportage"
-            ]
+        "make": {
+            "Toyota": {
+                "model": [
+                    "Corolla",
+                    "Camry",
+                    "RAV4"
+                ]
+            },
+            "Volvo": {
+                "model": [
+                    "XC90",
+                    "S60",
+                    "V60"
+                ]
+            },
+            "BMW": {
+                "model": [
+                    "X5",
+                    "3 Series",
+                    "5 Series"
+                ]
+            },
+            "Ford": {
+                "model": [
+                    "Fiesta",
+                    "Focus",
+                    "Explorer"
+                ]
+            },
+            "KIA": {
+                "model": [
+                    "Rio",
+                    "Sorento",
+                    "Sportage"
+                ]
+            }
         },
         "category": [
             "Sedan",
