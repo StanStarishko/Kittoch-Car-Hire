@@ -59,7 +59,7 @@ const bookingSchema = new mongoose.Schema({
             label: 'Start Time',
             placeholder: 'Select start time',
             type: 'time',
-            required: true
+            required: false
         }
     },
     ReturnDate: {
@@ -68,7 +68,7 @@ const bookingSchema = new mongoose.Schema({
             label: 'Return Date',
             placeholder: 'Select return date',
             type: 'date',
-            required: true
+            required: false
         }
     },
     ReturnTime: {
@@ -77,7 +77,7 @@ const bookingSchema = new mongoose.Schema({
             label: 'Return Time',
             placeholder: 'Select return time',
             type: 'time',
-            required: true
+            required: false
         }
     },
     PickupLocation: {
@@ -86,7 +86,7 @@ const bookingSchema = new mongoose.Schema({
             label: 'Pickup Location',
             placeholder: 'Enter pickup location',
             type: 'text',
-            required: true
+            required: false
         }
     },
     DropoffLocation: {
@@ -95,7 +95,7 @@ const bookingSchema = new mongoose.Schema({
             label: 'Dropoff Location',
             placeholder: 'Enter dropoff location',
             type: 'text',
-            required: true
+            required: false
         }
     }
 }, { timestamps: true });

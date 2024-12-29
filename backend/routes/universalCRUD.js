@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 
+const fs = require('fs/promises');
+const path = require('path');
+const SETTINGS_DIR = path.join(__dirname, '../../frontend/settings');
+
 // Model Registration
 const Booking = require("../models/Booking");
 const Customer = require("../models/Customer");
@@ -230,5 +234,29 @@ router.delete("/:collection/:id", async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// Get settings
+router.get('/settings/:filename', async (req, res) => {
+    try {
+      const filePath = path.join(SETTINGS_DIR, req.params.filename);
+      const data = await fs.readFile(filePath, 'utf8');
+      res.json(JSON.parse(data));
+    } catch (error) {
+      console.error('Error reading settings:', error);
+      res.status(404).json({ error: 'Settings file not found' });
+    }
+  });
+  
+  // Saving settings
+  router.post('/settings/:filename', async (req, res) => {
+    try {
+      const filePath = path.join(SETTINGS_DIR, req.params.filename);
+      await fs.writeFile(filePath, JSON.stringify(req.body, null, 2), 'utf8');
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      res.status(500).json({ error: 'Failed to save settings' });
+    }
+  });
 
 module.exports = router;

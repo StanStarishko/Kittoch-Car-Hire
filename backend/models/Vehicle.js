@@ -19,7 +19,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select or enter make',
             type: 'select',
             required: true,
-            setting: '/frontend/settings/collections.json#vehicle.make'
+            setting: 'collections.json#vehicle.make'
         }
     },
     Model: {
@@ -29,7 +29,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select or enter model',
             type: 'select',
             required: true,
-            setting: '/frontend/settings/collections.json#vehicle.make.model'
+            setting: 'collections.json#vehicle.make.model'
         }
     },
     Category: {
@@ -39,7 +39,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select category',
             type: 'select',
             required: true,
-            setting: '/frontend/settings/collections.json#vehicle.category'
+            setting: 'collections.json#vehicle.category'
         }
     },
     Passengers: {
@@ -67,7 +67,7 @@ const vehicleSchema = new mongoose.Schema({
             placeholder: 'Select fuel type',
             type: 'select',
             required: true,
-            setting: '/frontend/settings/collections.json#vehicle.fuel'
+            setting: 'collections.json#vehicle.fuel'
         }
     },
     DateOfPurchase: {
@@ -85,7 +85,8 @@ const vehicleSchema = new mongoose.Schema({
             label: 'Available',
             placeholder: 'Select availability',
             type: 'checkbox',
-            required: true
+            readonly: true,
+            required: false
         }
     },
     CostPerDay: {
