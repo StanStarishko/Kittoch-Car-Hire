@@ -239,6 +239,7 @@ router.delete("/:collection/:id", async (req, res) => {
 router.get('/settings/:filename', async (req, res) => {
     try {
       const filePath = path.join(SETTINGS_DIR, req.params.filename);
+      console.log('Saving settings to:', filePath);
       const data = await fs.readFile(filePath, 'utf8');
       res.json(JSON.parse(data));
     } catch (error) {
@@ -251,6 +252,7 @@ router.get('/settings/:filename', async (req, res) => {
   router.post('/settings/:filename', async (req, res) => {
     try {
       const filePath = path.join(SETTINGS_DIR, req.params.filename);
+      console.log('Saving settings to:', filePath);
       await fs.writeFile(filePath, JSON.stringify(req.body, null, 2), 'utf8');
       res.json({ success: true });
     } catch (error) {

@@ -1,4 +1,3 @@
-
 // Function to check vehicle availability
 function checkVehicleAvailability(recordId, startDate = null, endDate = null) {
   const collection = "Booking";
@@ -89,7 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to load settings from local file
   async function loadSettingsFile(filename) {
     try {
-      const response = await fetch(filename);
+      const response = await fetch(`${apiUrl}/settings/${filename}`);
       if (!response.ok) throw new Error("Settings file not found");
       return await response.json();
     } catch (error) {
@@ -105,11 +104,22 @@ document.addEventListener("DOMContentLoaded", function () {
     const parts = path.split(".");
     let current = obj;
 
-    // If we have a parent value and it's a hierarchical structure
-    if (parentValue && parts.includes("model")) {
-      // Navigate to the parent's model array
-      current = current[parts[0]][parts[1]][parentValue]?.model;
-      return current || [];
+    // Handle hierarchical structure with parent value
+    if (parentValue) {
+      const parentParts = parts.slice(0, -1);
+      let parentObj = current;
+
+      // Navigate to parent level
+      for (const part of parentParts) {
+        if (!parentObj[part]) return [];
+        parentObj = parentObj[part];
+      }
+
+      // Check if parent value exists and has children
+      if (parentObj[parentValue]) {
+        return parentObj[parentValue][parts[parts.length - 1]] || [];
+      }
+      return [];
     }
 
     // For non-hierarchical paths
@@ -118,12 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
       current = current[part];
     }
 
-    // If the result is an object with named properties, return the keys
-    if (current && typeof current === "object" && !Array.isArray(current)) {
-      return Object.keys(current);
-    }
-
-    return current || [];
+    return Array.isArray(current) ? current : [];
   }
 
   // Function to get field metadata from schema
@@ -155,18 +160,6 @@ document.addEventListener("DOMContentLoaded", function () {
     input.placeholder = metadata.placeholder;
     input.required = metadata.required;
 
-    // Add validation for dependent fields
-    if (parentField) {
-      input.addEventListener("focus", async function () {
-        const parentInput = document.getElementById(parentField);
-        if (!parentInput?.value) {
-          const parentMetadata = await getFieldMetadata(schema, parentField);
-          input.blur();
-          alert(`Please select ${parentMetadata.label} first`);
-        }
-      });
-    }
-
     const dropdown = document.createElement("ul");
     dropdown.className = "dropdown-menu w-100 position-absolute";
     dropdown.style.cssText =
@@ -175,9 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
     wrapper.appendChild(input);
     wrapper.appendChild(dropdown);
 
-    const storageKey = `customValues_${fieldName}`;
-    const storedOptions = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    let allOptions = [...new Set([...options, ...storedOptions])];
+    let currentOptions = [...options];
 
     // Initialize dropdown with filtered options based on parent value
     async function updateOptionsBasedOnParent() {
@@ -193,16 +184,16 @@ document.addEventListener("DOMContentLoaded", function () {
               parentValue
             );
             if (Array.isArray(newOptions)) {
-              allOptions = [...new Set([...newOptions, ...storedOptions])];
+              currentOptions = [...newOptions];
               updateDropdown(
-                allOptions.filter((opt) =>
+                currentOptions.filter((opt) =>
                   opt.toLowerCase().includes(input.value.toLowerCase())
                 )
               );
             }
           }
         } else {
-          allOptions = [...storedOptions];
+          currentOptions = [];
           updateDropdown([]);
         }
       }
@@ -221,7 +212,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const value = this.value.toLowerCase();
-      const matches = allOptions.filter((option) =>
+      const matches = currentOptions.filter((option) =>
         option.toLowerCase().includes(value)
       );
       updateDropdown(matches);
@@ -295,8 +286,8 @@ document.addEventListener("DOMContentLoaded", function () {
       items.forEach((item) => {
         const optionElement = document.createElement("option");
         optionElement.value = item._id;
-        optionElement.textContent = 
-        item[`${collectionName}Id`] || item.name || item.title || item._id;
+        optionElement.textContent =
+          item[`${collectionName}Id`] || item.name || item.title || item._id;
         selectElement.appendChild(optionElement);
       });
     } catch (error) {
@@ -489,134 +480,170 @@ document.addEventListener("DOMContentLoaded", function () {
       alert("Error loading form data. Please try again.");
     });
 
+  // Function to deep merge arrays and objects
+  function deepMerge(target, source) {
+    if (Array.isArray(source)) {
+      if (!Array.isArray(target)) {
+        target = [];
+      }
+      // Add only unique values
+      source.forEach((item) => {
+        if (!target.includes(item)) {
+          target.push(item);
+        }
+      });
+      return target;
+    }
+
+    if (source && typeof source === "object") {
+      if (!target || typeof target !== "object") {
+        target = {};
+      }
+      Object.keys(source).forEach((key) => {
+        target[key] = deepMerge(target[key], source[key]);
+      });
+      return target;
+    }
+
+    return source;
+  }
+
+  // Function to create nested structure from path and value
+  function createNestedStructure(path, value) {
+    const pathParts = path.split(".");
+    const result = {};
+    let current = result;
+
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      current[pathParts[i]] = {};
+      current = current[pathParts[i]];
+    }
+
+    const lastPart = pathParts[pathParts.length - 1];
+    current[lastPart] = Array.isArray(value) ? value : [value];
+
+    return result;
+  }
+
+  // Function for saving settings to local file
+  async function saveSettingsFile(filename, updates) {
+    console.log("Batch saving settings:", {
+      filename,
+      updates: Array.from(updates),
+    });
+
+    try {
+      // Load current settings once
+      const currentSettings = await loadSettingsFile(filename);
+      if (!currentSettings) throw new Error("Unable to load current settings");
+
+      // Create a single merged structure from all updates
+      const newStructure = Array.from(updates).reduce((acc, [path, value]) => {
+        const structure = createNestedStructure(path, value);
+        return deepMerge(acc, structure);
+      }, {});
+
+      // Merge with current settings
+      const updatedSettings = deepMerge(currentSettings, newStructure);
+
+      console.log(
+        "Current settings structure:",
+        JSON.stringify(currentSettings, null, 2)
+      );
+
+      console.log(
+        "New settings structure:",
+        JSON.stringify(newStructure, null, 2)
+      );
+
+      console.log(
+        "Final settings structure:",
+        JSON.stringify(updatedSettings, null, 2)
+      );
+
+      // Save updated settings
+      const response = await fetch(`${apiUrl}/settings/${filename}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedSettings),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to save settings: ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      return null;
+    }
+  }
+
   // Function to update settings file with new values
   async function updateSettingsWithNewValues(formData) {
-    if (!schema) {
-      console.error('Schema is not loaded');
-      return;
-    }    
-    
-    // Read current schema to find fields with settings
+    if (!schema) return;
+
+    // Get fields based on settings
     const fieldsWithSettings = Object.entries(schema).filter(
       ([_, field]) =>
         field.metadata?.type === "select" && field.metadata?.setting
     );
 
-    // Group fields by settings file to minimize file operations
-    const fileOperations = new Map();
+    // Group all updates by filename
+    const settingsUpdates = new Map();
 
     for (const [fieldName, field] of fieldsWithSettings) {
       const fieldValue = formData[fieldName];
       if (!fieldValue) continue;
 
       const [filename, path] = field.metadata.setting.split("#");
-
-      // Initialize file operation if not exists
-      if (!fileOperations.has(filename)) {
-        try {
-          const settingsData = await fs.promises.readFile(filename, "utf8");
-          fileOperations.set(filename, JSON.parse(settingsData));
-        } catch (error) {
-          console.error(`Error reading settings file ${filename}:`, error);
-          throw error;
-        }
-      }
-
-      const settings = fileOperations.get(filename);
       const pathParts = path.split(".");
 
-      // Find if this field is part of a hierarchy by analyzing other fields' settings
-      const isHierarchicalField = Object.entries(schema).some(
-        ([otherField, otherValue]) => {
-          if (otherField === fieldName) return false;
-          const otherSetting = otherValue.metadata?.setting;
-          if (!otherSetting) return false;
-
-          const [otherFile, otherPath] = otherSetting.split("#");
-          return otherFile === filename && otherPath.startsWith(path);
-        }
-      );
-
       // Find parent field if exists
-      const parentField = Object.entries(schema).find(
-        ([otherField, otherValue]) => {
-          const otherSetting = otherValue.metadata?.setting;
-          if (!otherSetting) return false;
+      const parentField = Object.entries(schema).find(([_, otherField]) => {
+        if (!otherField.metadata?.setting) return false;
+        const [otherFile, otherPath] = otherField.metadata.setting.split("#");
+        return (
+          otherFile === filename &&
+          pathParts[0] === otherPath.split(".")[0] &&
+          pathParts.length > otherPath.split(".").length
+        );
+      });
 
-          const [otherFile, otherPath] = otherSetting.split("#");
-          return (
-            otherFile === filename &&
-            path.startsWith(otherPath) &&
-            path !== otherPath
-          );
-        }
-      );
+      if (!settingsUpdates.has(filename)) {
+        settingsUpdates.set(filename, new Map());
+      }
+      const fileUpdates = settingsUpdates.get(filename);
 
-      let current = settings;
-
-      if (isHierarchicalField && parentField) {
-        const [parentFieldName, parentFieldData] = parentField;
+      // Handle nested paths with parent values
+      if (parentField) {
+        const [parentFieldName] = parentField;
         const parentValue = formData[parentFieldName];
         if (!parentValue) continue;
 
-        // Navigate to parent level
-        const parentPathParts = parentFieldData.metadata.setting
-          .split("#")[1]
-          .split(".");
-        for (const part of parentPathParts) {
-          current = current[part];
-          if (!current) {
-            current = {};
-            break;
-          }
-        }
+        // Create full path including parent value
+        const fullPath = pathParts
+          .map((part, index) => {
+            if (index === pathParts.length - 2) return parentValue;
+            return part;
+          })
+          .join(".");
 
-        // Initialize parent value if doesn't exist
-        if (!current[parentValue]) {
-          current[parentValue] = {};
-        }
-
-        // For fields that contain arrays of values
-        const lastPart = pathParts[pathParts.length - 1];
-        if (!current[parentValue][lastPart]) {
-          current[parentValue][lastPart] = [];
-        }
-
-        // Add new value if it doesn't exist
-        if (!current[parentValue][lastPart].includes(fieldValue)) {
-          current[parentValue][lastPart].push(fieldValue);
-        }
+        fileUpdates.set(fullPath, fieldValue);
       } else {
-        // Handle non-hierarchical fields
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          if (!current[pathParts[i]]) {
-            current[pathParts[i]] = {};
-          }
-          current = current[pathParts[i]];
-        }
-
-        const lastPart = pathParts[pathParts.length - 1];
-        if (!Array.isArray(current[lastPart])) {
-          current[lastPart] = [];
-        }
-
-        if (!current[lastPart].includes(fieldValue)) {
-          current[lastPart].push(fieldValue);
-        }
+        fileUpdates.set(path, fieldValue);
       }
     }
 
-    // Write all modified files
-    for (const [filename, data] of fileOperations) {
+    // Process updates for each file once
+    for (const [filename, updates] of settingsUpdates) {
       try {
-        await fs.promises.writeFile(
-          filename,
-          JSON.stringify(data, null, 4),
-          "utf8"
-        );
+        await saveSettingsFile(filename, updates);
       } catch (error) {
-        console.error(`Error writing settings file ${filename}:`, error);
-        throw error;
+        console.error(`Error updating settings for ${filename}:`, error);
       }
     }
   }
