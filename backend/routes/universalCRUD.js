@@ -44,7 +44,10 @@ router.use((req, res, next) => {
 /**
  * Enhanced filter route with advanced querying capabilities
  * Supports:
- * - Date range queries
+ * - Date range queries with OR logic
+ * - Single date availability filtering:
+ *   - noAvailableDate: finds records where date is within StartDate and ReturnDate
+ *   - availableDate: finds records where date is outside StartDate and ReturnDate
  * - Pagination
  * - Sorting
  * - Field selection
@@ -71,15 +74,36 @@ router.post("/filtered/:collection", async (req, res) => {
     }
 
     const Model = mongoose.model(collection);
-
     let query = {};
 
     // Add basic filters
     Object.keys(filters).forEach((key) => {
       if (filters[key]) {
+        if (key === "noAvailableDate" || key === "availableDate") {
+          return; // Skip here, handle separately
+        }
         query[key] = filters[key];
       }
     });
+
+    // Handle availability date filters
+    if (filters.noAvailableDate) {
+      const date = new Date(filters.noAvailableDate);
+      const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+      query.$and = [
+        { StartDate: { $lte: endOfDay } },
+        { ReturnDate: { $gte: startOfDay } },
+      ];
+    } else if (filters.availableDate) {
+      const date = new Date(filters.availableDate);
+      const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+      query.$or = [
+        { StartDate: { $gt: endOfDay } },
+        { ReturnDate: { $lt: startOfDay } },
+      ];
+    }
 
     // Add date range filters with OR logic
     const dateQueries = Object.keys(dateRanges)
@@ -100,10 +124,15 @@ router.post("/filtered/:collection", async (req, res) => {
       .filter((q) => q !== null);
 
     if (dateQueries.length > 0) {
-      query.$or = dateQueries;
+      query = {
+        ...query,
+        ...(query.$and
+          ? { $and: [...query.$and, { $or: dateQueries }] }
+          : { $or: dateQueries }),
+      };
     }
 
-    // Rest of the code remains the same
+    // Add text search if provided
     if (search) {
       const searchFields = Model.schema.obj;
       const searchQueries = Object.keys(searchFields)
@@ -113,7 +142,12 @@ router.post("/filtered/:collection", async (req, res) => {
         .map((field) => ({ [field]: new RegExp(search, "i") }));
 
       if (searchQueries.length > 0) {
-        query.$or = searchQueries;
+        query = {
+          ...query,
+          ...(query.$and
+            ? { $and: [...query.$and, { $or: searchQueries }] }
+            : { $or: searchQueries }),
+        };
       }
     }
 
@@ -171,11 +205,9 @@ router.post("/:collection", async (req, res) => {
 
       // Validate required fields
       if (!CustomerId || !StartDate) {
-        return res
-          .status(400)
-          .json({
-            error: "CustomerId and StartDate are required for Booking.",
-          });
+        return res.status(400).json({
+          error: "CustomerId and StartDate are required for Booking.",
+        });
       }
 
       // Format StartDate to YYYY-MM-DD
