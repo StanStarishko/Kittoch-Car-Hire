@@ -1,10 +1,7 @@
-  // Helper function to format dates
-  function formatDate(dateString) {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toISOString().split("T")[0];
-  }
-
+import {
+  checkVehicleAvailability,
+  formatDate,
+} from "./utilities.js";
 
 document.addEventListener("DOMContentLoaded", function () {
   let schema = null;

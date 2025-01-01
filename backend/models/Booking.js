@@ -9,6 +9,7 @@ const bookingSchema = new mongoose.Schema({
             label: 'Booking ID',
             placeholder: 'Enter booking ID',
             type: 'text',
+            readonly: true,
             required: true
         }
     },
@@ -23,17 +24,6 @@ const bookingSchema = new mongoose.Schema({
             required: true
         }
     },
-    CarId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Vehicle',
-        required: true,
-        metadata: {
-            label: 'Vehicle',
-            placeholder: 'Select vehicle',
-            type: 'select',
-            required: true
-        }
-    },
     BookingDate: {
         type: Date,
         default: Date.now,
@@ -42,6 +32,15 @@ const bookingSchema = new mongoose.Schema({
             placeholder: 'Select booking date',
             type: 'date',
             required: true
+        }
+    },
+    PickupLocation: {
+        type: String,
+        metadata: {
+            label: 'Pickup Location',
+            placeholder: 'Enter pickup location',
+            type: 'text',
+            required: false
         }
     },
     StartDate: {
@@ -80,13 +79,15 @@ const bookingSchema = new mongoose.Schema({
             required: false
         }
     },
-    PickupLocation: {
-        type: String,
+    CarId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Vehicle',
+        required: true,
         metadata: {
-            label: 'Pickup Location',
-            placeholder: 'Enter pickup location',
-            type: 'text',
-            required: false
+            label: 'Vehicle',
+            placeholder: 'Select vehicle',
+            type: 'select',
+            required: true
         }
     },
     DropoffLocation: {
