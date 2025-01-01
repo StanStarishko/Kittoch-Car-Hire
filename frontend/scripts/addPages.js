@@ -1,3 +1,11 @@
+  // Helper function to format dates
+  function formatDate(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toISOString().split("T")[0];
+  }
+
+
 document.addEventListener("DOMContentLoaded", function () {
   let schema = null;
   const apiUrl = "https://kittoch-car-hire.onrender.com/api/universalCRUD";
@@ -7,11 +15,16 @@ document.addEventListener("DOMContentLoaded", function () {
   const collection = urlParams.get("collection") || "Employee";
   const recordId = urlParams.get("id");
   let dataRecordID = null;
+
   const returnUrl =
     urlParams.get("returnUrl") ||
     (collection === "Employee" && !recordId
       ? "/"
       : "/frontend/html/dashboard.html");
+
+  const prefillData = urlParams.get("prefill")
+    ? JSON.parse(decodeURIComponent(urlParams.get("prefill")))
+    : null;
 
   // Update form title
   const formTitle = document.getElementById("formTitle");
@@ -264,7 +277,10 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(async (schemaData) => {
       schema = schemaData.obj;
       const formFields = document.getElementById("formFields");
-
+      /*     .then(async (schemaData) => {
+      schema = schemaData.obj;
+      const formFields = document.getElementById("formFields");
+ */
       // Keep track of field dependencies
       const dependentFields = new Map();
 
@@ -324,7 +340,7 @@ document.addEventListener("DOMContentLoaded", function () {
               parentField,
               schema
             );
-            enhancedSelect.style.cssText = "text-align: start;"
+            enhancedSelect.style.cssText = "text-align: start;";
             div.appendChild(enhancedSelect);
           } else if (metadata.type === "select") {
             // Handle regular select field
@@ -332,14 +348,14 @@ document.addEventListener("DOMContentLoaded", function () {
             select.id = fieldName;
             select.name = fieldName;
             select.className = "form-control";
-            select.style.cssText = "text-align: left;"
+            select.style.cssText = "text-align: left;";
 
             select.required = metadata.required;
 
             const defaultOption = document.createElement("option");
             defaultOption.value = "";
             defaultOption.textContent = `Select ${metadata.label}`;
-            defaultOption.style.cssText = "text-align: left;"
+            defaultOption.style.cssText = "text-align: left;";
             select.appendChild(defaultOption);
 
             if (field.ref) {
@@ -360,8 +376,8 @@ document.addEventListener("DOMContentLoaded", function () {
               input.name = fieldName;
               input.className = "form-check-input";
               input.required = metadata.required;
-              input.style.cssText = "text-align: start;"
-  
+              input.style.cssText = "text-align: start;";
+
               if (metadata.readonly) {
                 input.disabled = true;
                 input.style.cursor = "not-allowed";
@@ -385,7 +401,8 @@ document.addEventListener("DOMContentLoaded", function () {
               input.placeholder = metadata.placeholder;
               input.className = "form-control";
               input.required = metadata.required;
-              input.style.cssText = "text-align: start; display: flex; justify-content: start;"
+              input.style.cssText =
+                "text-align: start; display: flex; justify-content: start;";
 
               if (metadata.readonly) {
                 input.disabled = true;
@@ -480,6 +497,23 @@ document.addEventListener("DOMContentLoaded", function () {
           console.error("Fetch error:", error);
           alert("Error connecting to server");
         }
+      }
+
+      // handling after form fields are created
+      if (prefillData) {
+        Object.entries(prefillData).forEach(([key, value]) => {
+          const element = document.getElementById(key);
+          if (element) {
+            if (element.type === "date") {
+              element.value = formatDate(new Date(value));
+            } else {
+              element.value = value;
+            }
+
+            // Trigger change event for any dependent fields
+            element.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
       }
     })
     .catch((error) => {

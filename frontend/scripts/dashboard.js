@@ -202,14 +202,20 @@ $(document).ready(() => {
   });
 
   // Action buttons creator
-  function createActionButtons(id, collectionId, collection, isAvailable = false) {
-    const bookingButton = collection === "Vehicle" 
+  function createActionButtons(
+    id,
+    collectionId,
+    collection,
+    isAvailable = false
+  ) {
+    const bookingButton =
+      collection === "Vehicle"
         ? `<button class="btn btn-link book-vehicle-btn" 
-                      data-id="${collectionId}" 
-                      style="display: ${isAvailable ? 'inline-block' : 'none'}">
+                      data-id="${id}" 
+                      style="display: ${isAvailable ? "inline-block" : "none"}">
               <i class="bi bi-calendar-heart" style="color: #007BFF"></i>
            </button>`
-        : '';
+        : "";
 
     return `
         <div class="btn-group">
@@ -222,27 +228,35 @@ $(document).ready(() => {
             ${bookingButton}
         </div>
     `;
-}
+  }
 
-// New function to handle date change and availability check
-async function handleDateChange(dateInput, vehicleId, availabilityCell, bookButton) {
-  const selectedDate = new Date(dateInput.value);
-  
-  try {
-      const isAvailable = await checkVehicleAvailability(vehicleId, selectedDate);
+  // New function to handle date change and availability check
+  async function handleDateChange(
+    dateInput,
+    vehicleId,
+    availabilityCell,
+    bookButton
+  ) {
+    const selectedDate = new Date(dateInput.value);
+
+    try {
+      const isAvailable = await checkVehicleAvailability(
+        vehicleId,
+        selectedDate
+      );
       availabilityCell.textContent = isAvailable ? "Available" : "Booked";
       availabilityCell.className = isAvailable ? "text-success" : "text-danger";
-      
+
       // Toggle booking button visibility based on availability
       if (bookButton) {
-          bookButton.style.display = isAvailable ? "inline-block" : "none";
+        bookButton.style.display = isAvailable ? "inline-block" : "none";
       }
-  } catch (error) {
+    } catch (error) {
       availabilityCell.textContent = "Status Unknown";
       availabilityCell.className = "text-warning";
       console.error("Availability check failed:", error);
+    }
   }
-}
 
   // Generic data loader
   async function loadTableData(collection, tableBodySelector, createRow) {
@@ -336,21 +350,19 @@ async function handleDateChange(dateInput, vehicleId, availabilityCell, bookButt
    * @param {HTMLElement} cell - The table cell to update
    * @returns {Promise<void>}
    */
-  async function updateVehicleAvailability(id,vehicleId, cell, bookButton) {
+  async function updateVehicleAvailability(id, vehicleId, cell, bookButton) {
     try {
       const result = await checkVehicleAvailability(vehicleId);
       cell.textContent = result ? "Available" : "Booked";
       cell.classList.add(result ? "text-success" : "text-danger");
-      createActionButtons(id,vehicleId, "Vehicle", result);
+      createActionButtons(id, vehicleId, "Vehicle", result);
 
-      
       // Toggle booking button visibility based on availability
       if (bookButton) {
         bookButton.style.display = result ? "inline-block" : "none";
       }
 
       cell.value = result;
-
     } catch (error) {
       cell.textContent = "Status Unknown";
       cell.classList.add("text-warning");
@@ -364,17 +376,17 @@ async function handleDateChange(dateInput, vehicleId, availabilityCell, bookButt
   // Modified loadVehicles function
   const loadVehicles = () =>
     loadTableData("Vehicle", "#vehicleTableBody", (vehicle, tableBody) => {
-        const row = document.createElement("tr");
-        const availabilityCell = document.createElement("td");
-        availabilityCell.textContent = "Checking...";
+      const row = document.createElement("tr");
+      const availabilityCell = document.createElement("td");
+      availabilityCell.textContent = "Checking...";
 
-        // Create date input cell
-        const dateInput = document.createElement("input");
-        dateInput.type = "date";
-        dateInput.value = formatDate(currentDate);
-        dateInput.className = "date-cell form-control text-center";
+      // Create date input cell
+      const dateInput = document.createElement("input");
+      dateInput.type = "date";
+      dateInput.value = formatDate(currentDate);
+      dateInput.className = "date-cell form-control text-center";
 
-        row.innerHTML = `
+      row.innerHTML = `
             <td class="align-middle">${vehicle.VehicleId}</td>
             <td class="align-middle">${vehicle.Make}</td>
             <td class="align-middle">${vehicle.Model}</td>
@@ -382,25 +394,34 @@ async function handleDateChange(dateInput, vehicleId, availabilityCell, bookButt
             <td class="align-middle">${vehicle.CostPerDay}</td>
             <td class="availability-cell align-middle"></td>
             <td class="date-cell align-middle"></td>
-            <td class="actions-cell align-middle">${createActionButtons(vehicle._id, vehicle.VehicleId, "Vehicle", availabilityCell.value)}</td>
+            <td class="actions-cell align-middle">${createActionButtons(
+              vehicle._id,
+              vehicle.VehicleId,
+              "Vehicle",
+              availabilityCell.value
+            )}</td>
         `;
 
-        // Replace placeholder cells with actual elements
-        row.querySelector(".availability-cell").replaceWith(availabilityCell);
-        row.querySelector(".date-cell").replaceWith(dateInput);
+      // Replace placeholder cells with actual elements
+      row.querySelector(".availability-cell").replaceWith(availabilityCell);
+      row.querySelector(".date-cell").replaceWith(dateInput);
 
-        // Add date change handler
-        dateInput.addEventListener("change", () => {
-            handleDateChange(dateInput, vehicle._id, availabilityCell, bookButton);
-        
-        });
-        
-        const bookButton = row.querySelector(".book-vehicle-btn");
+      // Add date change handler
+      dateInput.addEventListener("change", () => {
+        handleDateChange(dateInput, vehicle._id, availabilityCell, bookButton);
+      });
 
-        // Initial availability check
-        updateVehicleAvailability(vehicle._id, vehicle.vehicleId, availabilityCell, bookButton)
+      const bookButton = row.querySelector(".book-vehicle-btn");
 
-        tableBody.append(row);
+      // Initial availability check
+      updateVehicleAvailability(
+        vehicle._id,
+        vehicle.vehicleId,
+        availabilityCell,
+        bookButton
+      );
+
+      tableBody.append(row);
     });
 
   const loadCustomers = () =>
@@ -459,22 +480,24 @@ async function handleDateChange(dateInput, vehicleId, availabilityCell, bookButt
     }
   }
 
-// Add new event handler for booking button
-$(document).on("click", ".book-vehicle-btn", function() {
+  // Add new event handler for booking button
+  $(document).on("click", ".book-vehicle-btn", function () {
     const vehicleId = $(this).data("id");
     const dateInput = $(this).closest("tr").find("input[type='date']").val();
     const activeTab = $(".nav-link.active").attr("id");
-    const returnUrl = encodeURIComponent(`${window.location.pathname}?activeTab=${activeTab}`);
-    
+    const returnUrl = encodeURIComponent(
+      `${window.location.pathname}?activeTab=${activeTab}`
+    );
+
     // Redirect to universal form with pre-filled values
     window.location.href = `/frontend/html/addPages.html?collection=Booking&returnUrl=${returnUrl}&prefill=${encodeURIComponent(
-        JSON.stringify({
-            CarId: vehicleId,
-            BookingDate: formatDate(new Date()),
-            StartDate: dateInput
-        })
+      JSON.stringify({
+        CarId: vehicleId,
+        BookingDate: formatDate(new Date()),
+        StartDate: dateInput,
+      })
     )}`;
-});
+  });
 
   // Handle edit and delete actions
   $(document).on("click", ".edit-btn", function () {
