@@ -1,58 +1,3 @@
-// Function to check vehicle availability
-function checkVehicleAvailability(recordId, startDate = null, endDate = null) {
-  const collection = "Booking";
-  const apiUrl = "https://kittoch-car-hire.onrender.com/api/universalCRUD";
-  let dateRanges = "";
-
-  if (startDate != null && endDate != null) {
-    dateRanges = {
-      dateRanges: { startDate, endDate },
-    };
-  } else if (startDate != null && endDate == null) {
-    dateRanges = {
-      dateRanges: startDate,
-    };
-  } else if (startDate == null && endDate != null) {
-    dateRanges = {
-      dateRanges: endDate,
-    };
-  }
-
-  try {
-    const requestBody = {
-      filters: {
-        CarId: recordId,
-        dateRanges,
-      },
-    };
-
-    const response = fetch(`${apiUrl}/filtered/${collection}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (response.ok) {
-      const data = response.json();
-
-      if (data.results && data.results.length > 0) {
-        return false;
-      } else {
-        return true;
-      }
-    } else {
-      const errorText = response.text();
-      console.error("Server error:", response.status, errorText);
-      alert("Error loading record data");
-    }
-  } catch (error) {
-    console.error("Fetch error:", error);
-    alert("Error connecting to server");
-  }
-}
-
 document.addEventListener("DOMContentLoaded", function () {
   let schema = null;
   const apiUrl = "https://kittoch-car-hire.onrender.com/api/universalCRUD";
@@ -100,45 +45,38 @@ document.addEventListener("DOMContentLoaded", function () {
   // Enhanced function to get nested value from settings using path
   function getValueFromPath(obj, path, parentValue = null) {
     if (!obj || !path) return [];
-
     const parts = path.split(".");
-    let current = obj;
 
-    // Handle hierarchical structure with parent value
+    // Handle parent-dependent values
     if (parentValue) {
-      const parentParts = parts.slice(0, -1);
-      let parentObj = current;
-
-      // Navigate to parent level
-      for (const part of parentParts) {
-        if (!parentObj[part]) return [];
-        parentObj = parentObj[part];
+      let current = obj;
+      // Navigate to the parent's level
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) return [];
+        current = current[parts[i]];
       }
 
-      // Check if parent value exists and has children
-      if (parentObj[parentValue]) {
-        return parentObj[parentValue][parts[parts.length - 1]] || [];
+      // Check if parent exists and has the requested field
+      const lastPart = parts[parts.length - 1];
+      if (current[parentValue]?.[lastPart]) {
+        return current[parentValue][lastPart];
       }
       return [];
     }
 
-    // For non-hierarchical paths
+    // Handle direct path navigation
+    let current = obj;
     for (const part of parts) {
       if (!current || typeof current !== "object") return [];
       current = current[part];
     }
 
-    return Array.isArray(current) ? current : [];
-  }
+    // Return array of values or keys for object
+    if (typeof current === "object" && !Array.isArray(current)) {
+      return Object.keys(current);
+    }
 
-  // Function to get field metadata from schema
-  async function getFieldMetadata(schema, fieldName) {
-    const field = schema[fieldName];
-    if (!field?.metadata) return null;
-    return {
-      label: field.metadata.label || fieldName,
-      required: field.metadata.required || false,
-    };
+    return Array.isArray(current) ? current : [];
   }
 
   // Function to create enhanced select with autocomplete
@@ -157,8 +95,9 @@ document.addEventListener("DOMContentLoaded", function () {
     input.id = fieldName;
     input.name = fieldName;
     input.className = "form-control";
-    input.placeholder = metadata.placeholder;
-    input.required = metadata.required;
+    input.placeholder = metadata.placeholder || `Enter ${metadata.label}`;
+    input.required = metadata.required || false;
+    input.style.cssText = "textAlign: left;";
 
     const dropdown = document.createElement("ul");
     dropdown.className = "dropdown-menu w-100 position-absolute";
@@ -170,105 +109,129 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentOptions = [...options];
 
-    // Initialize dropdown with filtered options based on parent value
     async function updateOptionsBasedOnParent() {
-      if (parentField) {
-        const parentValue = document.getElementById(parentField)?.value;
-        if (parentValue) {
-          const [filename, pathInFile] = metadata.setting.split("#");
-          const settings = await loadSettingsFile(filename);
-          if (settings) {
-            const newOptions = getValueFromPath(
-              settings,
-              pathInFile,
-              parentValue
-            );
-            if (Array.isArray(newOptions)) {
-              currentOptions = [...newOptions];
+      try {
+        if (parentField) {
+          const parentInput = document.getElementById(parentField);
+          const parentValue = parentInput?.value;
+
+          if (parentValue) {
+            const [filename, pathInFile] = metadata.setting.split("#");
+            const settings = await loadSettingsFile(filename);
+
+            if (settings) {
+              const parentOptions = getValueFromPath(
+                settings,
+                pathInFile,
+                parentValue
+              );
+
+              currentOptions = Array.isArray(parentOptions)
+                ? parentOptions
+                : [];
+
               updateDropdown(
                 currentOptions.filter((opt) =>
                   opt.toLowerCase().includes(input.value.toLowerCase())
                 )
               );
             }
+          } else {
+            currentOptions = [];
+            updateDropdown([]);
           }
-        } else {
-          currentOptions = [];
-          updateDropdown([]);
+        } else if (metadata.setting) {
+          // For parent fields, load options directly
+          const [filename, pathInFile] = metadata.setting.split("#");
+          const settings = await loadSettingsFile(filename);
+
+          if (settings) {
+            const values = getValueFromPath(settings, pathInFile);
+            currentOptions = Array.isArray(values)
+              ? values
+              : Object.keys(values);
+
+            updateDropdown(
+              currentOptions.filter((opt) =>
+                opt.toLowerCase().includes(input.value.toLowerCase())
+              )
+            );
+          }
         }
+      } catch (error) {
+        console.error(`Error updating options for ${fieldName}:`, error);
       }
     }
 
-    // Input handler with validation
-    input.addEventListener("input", async function () {
+    // Show dropdown on focus
+    input.addEventListener("focus", async function (e) {
+      if (!metadata.readonly) {
+        await updateOptionsBasedOnParent();
+      }
+    });
+
+    // Filter options on input
+    input.addEventListener("input", async function (e) {
+      if (metadata.readonly) return;
+
       if (parentField) {
         const parentInput = document.getElementById(parentField);
         if (!parentInput?.value) {
-          const parentMetadata = await getFieldMetadata(schema, parentField);
+          const parentMetadata = schema[parentField]?.metadata;
           this.value = "";
-          alert(`Please select ${parentMetadata.label} first`);
+          alert(`Please select ${parentMetadata?.label || parentField} first`);
           return;
         }
       }
 
-      const value = this.value.toLowerCase();
-      const matches = currentOptions.filter((option) =>
-        option.toLowerCase().includes(value)
-      );
-      updateDropdown(matches);
+      await updateOptionsBasedOnParent();
     });
 
-    // Update dropdown list
     function updateDropdown(matches) {
       dropdown.innerHTML = "";
+
       if (matches.length > 0) {
         matches.forEach((match) => {
           const li = document.createElement("li");
           li.style.cssText = "padding: 8px 12px; cursor: pointer;";
           li.textContent = match;
+
           li.addEventListener("click", () => {
             input.value = match;
             dropdown.style.display = "none";
-            // Trigger change event for dependent fields
-            const event = new Event("change", { bubbles: true });
-            input.dispatchEvent(event);
+            input.dispatchEvent(new Event("change", { bubbles: true }));
           });
+
           li.addEventListener("mouseenter", () => {
             li.style.backgroundColor = "#f8f9fa";
           });
+
           li.addEventListener("mouseleave", () => {
             li.style.backgroundColor = "transparent";
           });
+
           dropdown.appendChild(li);
         });
+
         dropdown.style.display = "block";
       } else {
         dropdown.style.display = "none";
       }
     }
 
-    // Close dropdown on outside click
+    // Handle outside clicks
     document.addEventListener("click", function (e) {
       if (!wrapper.contains(e.target)) {
         dropdown.style.display = "none";
       }
     });
 
-    // Store new value on form submit
-    input.form?.addEventListener("submit", function () {
-      const newValue = input.value;
-      if (newValue && !allOptions.includes(newValue)) {
-        allOptions.push(newValue);
-        localStorage.setItem(storageKey, JSON.stringify(allOptions));
-      }
-    });
-
-    // If this field has a parent, update options when parent changes
+    // Handle parent field changes
     if (parentField) {
       const parentInput = document.getElementById(parentField);
       if (parentInput) {
         parentInput.addEventListener("change", async () => {
-          input.value = ""; // Clear dependent field
+          input.value = "";
           await updateOptionsBasedOnParent();
         });
       }
@@ -361,6 +324,7 @@ document.addEventListener("DOMContentLoaded", function () {
               parentField,
               schema
             );
+            enhancedSelect.style.cssText = "text-align: start;"
             div.appendChild(enhancedSelect);
           } else if (metadata.type === "select") {
             // Handle regular select field
@@ -368,11 +332,14 @@ document.addEventListener("DOMContentLoaded", function () {
             select.id = fieldName;
             select.name = fieldName;
             select.className = "form-control";
+            select.style.cssText = "text-align: left;"
+
             select.required = metadata.required;
 
             const defaultOption = document.createElement("option");
             defaultOption.value = "";
             defaultOption.textContent = `Select ${metadata.label}`;
+            defaultOption.style.cssText = "text-align: left;"
             select.appendChild(defaultOption);
 
             if (field.ref) {
@@ -382,17 +349,56 @@ document.addEventListener("DOMContentLoaded", function () {
             div.appendChild(select);
           } else {
             // Handle other input types
-            const input = document.createElement("input");
-            input.type = metadata.type;
-            input.id = fieldName;
-            input.name = fieldName;
-            input.className =
-              metadata.type === "checkbox"
-                ? "form-check-input"
-                : "form-control";
-            input.placeholder = metadata.placeholder;
-            input.required = metadata.required;
-            div.appendChild(input);
+            if (metadata.type === "checkbox") {
+              const checkboxWrapper = document.createElement("div");
+              checkboxWrapper.className = "form-check";
+              checkboxWrapper.style.cssText = "text-align: start";
+
+              const input = document.createElement("input");
+              input.type = "checkbox";
+              input.id = fieldName;
+              input.name = fieldName;
+              input.className = "form-check-input";
+              input.required = metadata.required;
+              input.style.cssText = "text-align: start;"
+  
+              if (metadata.readonly) {
+                input.disabled = true;
+                input.style.cursor = "not-allowed";
+              }
+
+              const checkboxLabel = document.createElement("label");
+              checkboxLabel.className = "form-check-label";
+              checkboxLabel.htmlFor = fieldName;
+              checkboxLabel.style.cssText = "text-align: start";
+              checkboxLabel.textContent =
+                metadata.placeholder || metadata.label;
+
+              checkboxWrapper.appendChild(input);
+              checkboxWrapper.appendChild(checkboxLabel);
+              div.appendChild(checkboxWrapper);
+            } else {
+              const input = document.createElement("input");
+              input.type = metadata.type;
+              input.id = fieldName;
+              input.name = fieldName;
+              input.placeholder = metadata.placeholder;
+              input.className = "form-control";
+              input.required = metadata.required;
+              input.style.cssText = "text-align: start; display: flex; justify-content: start;"
+
+              if (metadata.readonly) {
+                input.disabled = true;
+                input.style.backgroundColor = "#e9ecef";
+                input.style.cursor = "not-allowed";
+              }
+
+              if (metadata.step) {
+                input.step = metadata.step;
+              }
+
+              div.appendChild(input);
+            }
           }
 
           formFields.appendChild(div);
@@ -449,6 +455,7 @@ document.addEventListener("DOMContentLoaded", function () {
                       );
                     }
                     element.value = value || "";
+                    element.style.cssText = "text-align: start";
 
                     // Trigger change event for parent fields
                     if (value) {
@@ -480,102 +487,102 @@ document.addEventListener("DOMContentLoaded", function () {
       alert("Error loading form data. Please try again.");
     });
 
-  // Function to deep merge arrays and objects
-  function deepMerge(target, source) {
-    if (Array.isArray(source)) {
-      if (!Array.isArray(target)) {
-        target = [];
-      }
-      // Add only unique values
-      source.forEach((item) => {
-        if (!target.includes(item)) {
-          target.push(item);
-        }
-      });
-      return target;
-    }
-
-    if (source && typeof source === "object") {
-      if (!target || typeof target !== "object") {
-        target = {};
-      }
-      Object.keys(source).forEach((key) => {
-        target[key] = deepMerge(target[key], source[key]);
-      });
-      return target;
-    }
-
-    return source;
+  // Function to add value to array if not exists
+  function addUniqueValue(array, value) {
+    if (!Array.isArray(array)) array = [];
+    return array.includes(value) ? false : array.push(value);
   }
 
-  // Function to create nested structure from path and value
-  function createNestedStructure(path, value) {
+  // Function to handle nested value addition with parent-child relationships
+  function addNestedValue(obj, path, value, parentValue = null) {
     const pathParts = path.split(".");
-    const result = {};
-    let current = result;
+    let current = obj;
+    let modified = false;
 
-    for (let i = 0; i < pathParts.length - 1; i++) {
-      current[pathParts[i]] = {};
-      current = current[pathParts[i]];
+    // Handle parent-child relationship case
+    if (parentValue) {
+      // Ensure parent exists with proper structure
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        const part = pathParts[i];
+
+        if (!current[part]) {
+          current[part] = {};
+        }
+
+        // If it's the parent level and we have a parent value
+        if (i === pathParts.length - 2) {
+          if (!current[part][parentValue]) {
+            current[part][parentValue] = {};
+          }
+          current = current[part][parentValue];
+        } else {
+          current = current[part];
+        }
+      }
+
+      // Add the child value
+      const lastPart = pathParts[pathParts.length - 1];
+      if (!current[lastPart]) {
+        current[lastPart] = [];
+      }
+      modified = addUniqueValue(current[lastPart], value);
+    } else {
+      // Standard nested path handling
+      for (let i = 0; i < pathParts.length; i++) {
+        const part = pathParts[i];
+        const isLast = i === pathParts.length - 1;
+
+        if (!current[part]) {
+          current[part] = isLast ? [] : {};
+        }
+
+        if (isLast) {
+          modified = addUniqueValue(current[part], value);
+        } else {
+          current = current[part];
+        }
+      }
     }
 
-    const lastPart = pathParts[pathParts.length - 1];
-    current[lastPart] = Array.isArray(value) ? value : [value];
-
-    return result;
+    return modified;
   }
 
-  // Function for saving settings to local file
+  // Updated function for saving settings
   async function saveSettingsFile(filename, updates) {
-    console.log("Batch saving settings:", {
-      filename,
-      updates: Array.from(updates),
-    });
-
     try {
-      // Load current settings once
       const currentSettings = await loadSettingsFile(filename);
       if (!currentSettings) throw new Error("Unable to load current settings");
 
-      // Create a single merged structure from all updates
-      const newStructure = Array.from(updates).reduce((acc, [path, value]) => {
-        const structure = createNestedStructure(path, value);
-        return deepMerge(acc, structure);
-      }, {});
+      let hasChanges = false;
 
-      // Merge with current settings
-      const updatedSettings = deepMerge(currentSettings, newStructure);
+      // Process all updates
+      for (const [path, value] of updates) {
+        // Check if this is a child value that needs parent context
+        const pathParts = path.split(".");
+        const parentPath = pathParts.slice(0, -1).join(".");
+        const parentUpdates = Array.from(updates).find(
+          ([p, _]) => p === parentPath
+        );
 
-      console.log(
-        "Current settings structure:",
-        JSON.stringify(currentSettings, null, 2)
-      );
+        const modified = parentUpdates
+          ? addNestedValue(currentSettings, path, value, parentUpdates[1])
+          : addNestedValue(currentSettings, path, value);
 
-      console.log(
-        "New settings structure:",
-        JSON.stringify(newStructure, null, 2)
-      );
-
-      console.log(
-        "Final settings structure:",
-        JSON.stringify(updatedSettings, null, 2)
-      );
-
-      // Save updated settings
-      const response = await fetch(`${apiUrl}/settings/${filename}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedSettings),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to save settings: ${errorText}`);
+        hasChanges = hasChanges || modified;
       }
 
-      return await response.json();
+      if (hasChanges) {
+        const response = await fetch(`${apiUrl}/settings/${filename}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(currentSettings),
+        });
+
+        if (!response.ok) throw new Error(await response.text());
+        return await response.json();
+      }
+
+      return currentSettings;
     } catch (error) {
       console.error("Error saving settings:", error);
       return null;
@@ -586,13 +593,11 @@ document.addEventListener("DOMContentLoaded", function () {
   async function updateSettingsWithNewValues(formData) {
     if (!schema) return;
 
-    // Get fields based on settings
     const fieldsWithSettings = Object.entries(schema).filter(
       ([_, field]) =>
         field.metadata?.type === "select" && field.metadata?.setting
     );
 
-    // Group all updates by filename
     const settingsUpdates = new Map();
 
     for (const [fieldName, field] of fieldsWithSettings) {
@@ -600,45 +605,37 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!fieldValue) continue;
 
       const [filename, path] = field.metadata.setting.split("#");
-      const pathParts = path.split(".");
-
-      // Find parent field if exists
-      const parentField = Object.entries(schema).find(([_, otherField]) => {
-        if (!otherField.metadata?.setting) return false;
-        const [otherFile, otherPath] = otherField.metadata.setting.split("#");
-        return (
-          otherFile === filename &&
-          pathParts[0] === otherPath.split(".")[0] &&
-          pathParts.length > otherPath.split(".").length
-        );
-      });
 
       if (!settingsUpdates.has(filename)) {
         settingsUpdates.set(filename, new Map());
       }
       const fileUpdates = settingsUpdates.get(filename);
 
-      // Handle nested paths with parent values
+      // Handle parent-child relationships
+      const parentField = Object.entries(schema).find(([_, otherField]) => {
+        if (!otherField.metadata?.setting) return false;
+        const [parentFile, parentPath] = otherField.metadata.setting.split("#");
+        return (
+          parentFile === filename &&
+          path.startsWith(parentPath) &&
+          path !== parentPath
+        );
+      });
+
       if (parentField) {
-        const [parentFieldName] = parentField;
-        const parentValue = formData[parentFieldName];
-        if (!parentValue) continue;
-
-        // Create full path including parent value
-        const fullPath = pathParts
-          .map((part, index) => {
-            if (index === pathParts.length - 2) return parentValue;
-            return part;
-          })
-          .join(".");
-
-        fileUpdates.set(fullPath, fieldValue);
+        const [parentName] = parentField;
+        const parentValue = formData[parentName];
+        if (parentValue) {
+          const pathParts = path.split(".");
+          const basePathParts = pathParts.slice(0, -1);
+          const lastPart = pathParts[pathParts.length - 1];
+          fileUpdates.set(`${basePathParts.join(".")}.${lastPart}`, fieldValue);
+        }
       } else {
         fileUpdates.set(path, fieldValue);
       }
     }
 
-    // Process updates for each file once
     for (const [filename, updates] of settingsUpdates) {
       try {
         await saveSettingsFile(filename, updates);

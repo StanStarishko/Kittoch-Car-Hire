@@ -26,6 +26,13 @@
     padding: 10px 0;
 }
 
+.date-cell {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    text-justify: auto;
+}
+
 @media (-ms-high-contrast: active), (forced-colors: active) {
     /* Your general contrast theme styles */
 }

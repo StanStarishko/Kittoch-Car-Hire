@@ -35,6 +35,12 @@
                     "Sorento",
                     "Sportage"
                 ]
+            },
+            "Mercedes": {
+                "model": [
+                    "Vito",
+                    "SLK"
+                ]
             }
         },
         "category": [

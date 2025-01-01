@@ -95,6 +95,7 @@ const vehicleSchema = new mongoose.Schema({
             label: 'Cost per Day',
             placeholder: 'Enter daily cost',
             type: 'number',
+            step: 0.01,
             required: true
         }
     }
