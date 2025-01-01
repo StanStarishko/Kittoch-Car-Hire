@@ -3,6 +3,81 @@ import {
   formatDate,
 } from "./utilities.js";
 
+async function setupBookingFieldsHandling(schema) {
+  const carIdField = document.getElementById('CarId');
+  const startDateField = document.getElementById('StartDate');
+  const returnDateField = document.getElementById('ReturnDate');
+  
+  if (!carIdField || !startDateField || !returnDateField) return;
+  
+  const isCarIdReadonly = schema?.CarId?.metadata?.readonly || false;
+  
+  // Disable CarId initially if dates are empty
+  if (!startDateField.value || !returnDateField.value) {
+    carIdField.disabled = !isCarIdReadonly;
+  }
+
+  async function validateAvailability() {
+    if (!carIdField.value || !startDateField.value || !returnDateField.value) return;
+
+    const isAvailable = await checkVehicleAvailability(
+      carIdField.value,
+      new Date(startDateField.value),
+      new Date(returnDateField.value)
+    );
+
+    if (!isAvailable) {
+      const changeDate = confirm('Vehicle is not available for selected dates. Would you like to clear the dates?');
+      if (changeDate) {
+        startDateField.value = '';
+        returnDateField.value = '';
+      } else {
+        carIdField.value = '';
+      }
+    }
+  }
+
+  async function updateAvailableVehicles() {
+    if (!startDateField.value || !returnDateField.value) {
+      carIdField.disabled = !isCarIdReadonly;
+      return;
+    }
+
+    carIdField.disabled = false;
+    
+    // Fetch all vehicles and filter available ones
+    const response = await fetch('https://kittoch-car-hire.onrender.com/api/universalCRUD/Vehicle');
+    const vehicles = await response.json();
+    
+    const availableVehicles = await Promise.all(
+      vehicles.map(async vehicle => {
+        const isAvailable = await checkVehicleAvailability(
+          vehicle._id,
+          new Date(startDateField.value),
+          new Date(returnDateField.value)
+        );
+        return isAvailable ? vehicle : null;
+      })
+    );
+
+    // Update CarId options
+    //carIdField.innerHTML = '<option value="">Select Vehicle</option>';
+    availableVehicles
+      .filter(v => v !== null)
+      .forEach(vehicle => {
+        const option = document.createElement('option');
+        option.value = vehicle._id;
+        option.textContent = vehicle.VehicleId || vehicle.name || vehicle._id;
+        carIdField.appendChild(option);
+      });
+  }
+
+  // Event Listeners
+  startDateField.addEventListener('change', updateAvailableVehicles);
+  returnDateField.addEventListener('change', updateAvailableVehicles);
+  carIdField.addEventListener('change', validateAvailability);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   let schema = null;
   const apiUrl = "https://kittoch-car-hire.onrender.com/api/universalCRUD";
@@ -274,10 +349,7 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(async (schemaData) => {
       schema = schemaData.obj;
       const formFields = document.getElementById("formFields");
-      /*     .then(async (schemaData) => {
-      schema = schemaData.obj;
-      const formFields = document.getElementById("formFields");
- */
+
       // Keep track of field dependencies
       const dependentFields = new Map();
 
@@ -512,6 +584,11 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       }
+
+      if (collection === 'Booking') {
+        await setupBookingFieldsHandling(schema);
+      }
+
     })
     .catch((error) => {
       console.error("Error:", error);

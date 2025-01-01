@@ -94,6 +94,12 @@ export async function checkVehicleAvailability(
     };
   }
 
+  // for debugging
+/*   console.log(JSON.stringify({
+    filters: { CarId: recordId },
+    dateRanges,
+  }, null, 4));
+ */
   try {
     const response = await fetch(`${apiUrl}/filtered/${collection}`, {
       method: "POST",
