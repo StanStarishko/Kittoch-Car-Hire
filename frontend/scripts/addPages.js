@@ -61,7 +61,7 @@ async function setupBookingFieldsHandling(schema) {
     );
 
     // Update CarId options
-    //carIdField.innerHTML = '<option value="">Select Vehicle</option>';
+    carIdField.innerHTML = '<option value="">Select Vehicle</option>';
     availableVehicles
       .filter(v => v !== null)
       .forEach(vehicle => {

@@ -44,7 +44,9 @@ router.use((req, res, next) => {
 /**
  * Enhanced filter route with advanced querying capabilities
  * Supports:
- * - Date range queries with OR logic
+ * - Date range queries with OR/AND logic based on insideDateRanges parameter:
+ *   - insideDateRanges: true (default) - returns records where any date falls within its range
+ *   - insideDateRanges: false - returns records where both dates are outside the StartDate.start to ReturnDate.end period
  * - Single date availability filtering:
  *   - noAvailableDate: finds records where date is within StartDate and ReturnDate
  *   - availableDate: finds records where date is outside StartDate and ReturnDate
@@ -59,6 +61,7 @@ router.post("/filtered/:collection", async (req, res) => {
     const {
       filters = {},
       dateRanges = {},
+      insideDateRanges = true,
       page = 1,
       limit = 10,
       sortBy = {},
@@ -80,7 +83,7 @@ router.post("/filtered/:collection", async (req, res) => {
     Object.keys(filters).forEach((key) => {
       if (filters[key]) {
         if (key === "noAvailableDate" || key === "availableDate") {
-          return; // Skip here, handle separately
+          return;
         }
         query[key] = filters[key];
       }
@@ -105,31 +108,85 @@ router.post("/filtered/:collection", async (req, res) => {
       ];
     }
 
-    // Add date range filters with OR logic
-    const dateQueries = Object.keys(dateRanges)
-      .map((dateField) => {
-        const { start, end } = dateRanges[dateField];
-        if (start || end) {
-          const dateQuery = {};
-          if (start) dateQuery[dateField] = { $gte: new Date(start) };
-          if (end)
-            dateQuery[dateField] = {
-              ...dateQuery[dateField],
-              $lte: new Date(end),
-            };
-          return dateQuery;
-        }
-        return null;
-      })
-      .filter((q) => q !== null);
+    // Handle date range filters with inside/outside logic
+    if (Object.keys(dateRanges).length > 0) {
+      const startDate = dateRanges.StartDate?.start
+        ? new Date(dateRanges.StartDate.start)
+        : null;
+      const endDate = dateRanges.ReturnDate?.end
+        ? new Date(dateRanges.ReturnDate.end)
+        : null;
 
-    if (dateQueries.length > 0) {
-      query = {
-        ...query,
-        ...(query.$and
-          ? { $and: [...query.$and, { $or: dateQueries }] }
-          : { $or: dateQueries }),
-      };
+      if (startDate && endDate) {
+        if (insideDateRanges) {
+          // Include records where any date falls within its range
+          const dateQueries = Object.keys(dateRanges)
+            .map((dateField) => {
+              const { start, end } = dateRanges[dateField];
+              if (start || end) {
+                const dateQuery = {};
+                if (start) dateQuery[dateField] = { $gte: new Date(start) };
+                if (end) {
+                  dateQuery[dateField] = {
+                    ...dateQuery[dateField],
+                    $lte: new Date(end),
+                  };
+                }
+                return dateQuery;
+              }
+              return null;
+            })
+            .filter((q) => q !== null);
+
+          if (dateQueries.length > 0) {
+            query = {
+              ...query,
+              ...(query.$and
+                ? { $and: [...query.$and, { $or: dateQueries }] }
+                : { $or: dateQueries }),
+            };
+          }
+        } else {
+          // Include records where both dates are outside the entire period
+          query = {
+            ...query,
+            ...(query.$and
+              ? {
+                  $and: [
+                    ...query.$and,
+                    {
+                      $or: [
+                        { StartDate: { $lt: startDate } },
+                        { StartDate: { $gt: endDate } },
+                      ],
+                    },
+                    {
+                      $or: [
+                        { ReturnDate: { $lt: startDate } },
+                        { ReturnDate: { $gt: endDate } },
+                      ],
+                    },
+                  ],
+                }
+              : {
+                  $and: [
+                    {
+                      $or: [
+                        { StartDate: { $lt: startDate } },
+                        { StartDate: { $gt: endDate } },
+                      ],
+                    },
+                    {
+                      $or: [
+                        { ReturnDate: { $lt: startDate } },
+                        { ReturnDate: { $gt: endDate } },
+                      ],
+                    },
+                  ],
+                }),
+          };
+        }
+      }
     }
 
     // Add text search if provided

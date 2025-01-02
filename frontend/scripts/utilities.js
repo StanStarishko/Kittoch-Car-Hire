@@ -1,21 +1,26 @@
-export function shiftData(currData, days, isInc) {
+/* export function shiftData(currData, days, isInc) {
   let returnData = new Date(currData);
   const shiftDays = isInc ? days : -days;
   returnData.setDate(currData.getDate() + shiftDays);
   return returnData;
 }
+ */
 
 /**
  * Checks vehicle availability for a given date range or single date
  * @param {string} recordId - Vehicle ID to check
  * @param {Date|null} startDate - Start date of the period (optional)
  * @param {Date|null} endDate - End date of the period (optional)
+ * @param {inside|null} boolean - Either only startDate or endDate must be specified (optional)
+ *        - If true, the specified date is between startDate and endDate
+ *        - If false, the specified date is outside the range from startDate to endDate 
  * @returns {Promise<boolean>} - Returns true if vehicle is available
  */
 export async function checkVehicleAvailability(
   recordId,
   startDate = null,
-  endDate = null
+  endDate = null,
+  inside = true
 ) {
   const collection = "Booking";
   const apiUrl = "https://kittoch-car-hire.onrender.com/api/universalCRUD";
@@ -44,70 +49,53 @@ export async function checkVehicleAvailability(
         return now;
       })();
 
-  const dayCounter = 365;
+  /*   const dayCounter = 365;
   const currentDataStartPeriod = shiftData(startPeriodDate, dayCounter, false);
   const currentDataEndPeriod = shiftData(endPeriodDate, dayCounter, true);
+ */
 
-  // Period check
-  const dateRanges = {
-    StartDate: {
-      start: startPeriodDate,
-      end: endPeriodDate,
-    },
-    ReturnDate: {
-      start: startPeriodDate,
-      end: endPeriodDate,
-    },
-  };
+  let bodyJSON = null;
 
   if (startDate && endDate) {
-    // Period check already set
-  } else if (startDate) {
-    // Single start date check
-    dateRanges.StartDate = {
-      start: shiftData(startPeriodDate, dayCounter, false),
-      end: shiftData(startPeriodDate, 1, true),
+    // Period check
+    const dateRanges = {
+      StartDate: {
+        start: startPeriodDate,
+        end: endPeriodDate,
+      },
+      ReturnDate: {
+        start: startPeriodDate,
+        end: endPeriodDate,
+      },
     };
-    dateRanges.ReturnDate = {
-      start: startPeriodDate,
-      end: shiftData(startPeriodDate, dayCounter, true),
-    };
-  } else if (endDate) {
-    // Single end date check
-    dateRanges.StartDate = {
-      start: shiftData(endPeriodDate, dayCounter, false),
-      end: endPeriodDate,
-    };
-    dateRanges.ReturnDate = {
-      start: shiftData(endPeriodDate, 1, false),
-      end: shiftData(endPeriodDate, dayCounter, true),
-    };
+
+    bodyJSON = JSON.stringify({
+      filters: {
+        CarId: recordId
+      },
+      dateRanges,
+    });
   } else {
-    // Current date check
-    dateRanges.StartDate = {
-      start: currentDataStartPeriod,
-      end: endPeriodDate,
-    };
-    dateRanges.ReturnDate = {
-      start: startPeriodDate,
-      end: currentDataEndPeriod,
-    };
+    const queryDate = startPeriodDate ? startPeriodDate : endPeriodDate;
+    const queryAvailable = inside ? "noAvailableDate" : "availableDate";
+
+    bodyJSON = JSON.stringify({
+      filters: {
+        CarId: recordId,
+        [queryAvailable]: queryDate,
+      },
+    });
+
   }
 
   // for debugging
-/*   console.log(JSON.stringify({
-    filters: { CarId: recordId },
-    dateRanges,
-  }, null, 4));
- */
+  //console.log(JSON.stringify(bodyJSON, null, 4));
+
   try {
     const response = await fetch(`${apiUrl}/filtered/${collection}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filters: { CarId: recordId },
-        dateRanges,
-      }),
+      body: bodyJSON,
     });
 
     if (!response.ok) {
