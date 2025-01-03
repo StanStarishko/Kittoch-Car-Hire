@@ -146,7 +146,7 @@ $(document).ready(() => {
     showLoading(tableBodySelector);
 
     try {
-      const response = await fetch(`${apiUrl}/${collection}`);
+      const response = await fetch(`${apiUrl}/list/${collection}`);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       const requestData = await response.json();

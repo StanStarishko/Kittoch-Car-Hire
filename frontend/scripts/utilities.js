@@ -7,7 +7,7 @@
  */
 
 export function getCarTitle(car) {
-  return `${car.VehicleId} ${car.Make} ${car.Model}`
+  return `${car.VehicleId} ${car.Make} ${car.Model}`;
 }
 
 /**
@@ -17,14 +17,15 @@ export function getCarTitle(car) {
  * @param {Date|null} endDate - End date of the period (optional)
  * @param {inside|null} boolean - Either only startDate or endDate must be specified (optional)
  *        - If true, the specified date is between startDate and endDate
- *        - If false, the specified date is outside the range from startDate to endDate 
+ *        - If false, the specified date is outside the range from startDate to endDate
  * @returns {Promise<boolean>} - Returns true if vehicle is available
  */
 export async function checkVehicleAvailability(
   recordId,
   startDate = null,
   endDate = null,
-  inside = true
+  inside = true,
+  ignoreRecordId = ""
 ) {
   const collection = "Booking";
   const apiUrl = "https://kittoch-car-hire.onrender.com/api/universalCRUD";
@@ -76,9 +77,10 @@ export async function checkVehicleAvailability(
     bodyJSON = JSON.stringify({
       filters: {
         CarId: recordId,
-        insideDateRanges: inside
+        insideDateRanges: inside,
       },
       dateRanges,
+      ignoreRecord: ignoreRecordId,
     });
   } else {
     const queryDate = startPeriodDate ? startPeriodDate : endPeriodDate;
@@ -89,8 +91,8 @@ export async function checkVehicleAvailability(
         CarId: recordId,
         [queryAvailable]: queryDate,
       },
+      ignoreRecord: ignoreRecordId,
     });
-
   }
 
   // for debugging
@@ -108,7 +110,9 @@ export async function checkVehicleAvailability(
     }
 
     const data = await response.json();
-    console.log(`recordId: ${recordId}, data.results.length: ${data.results.length}`);
+    console.log(
+      `recordId: ${recordId}, data.results.length: ${data.results.length}`
+    );
     return !(data.results && data.results.length > 0);
   } catch (error) {
     console.error("Availability check failed:", error);

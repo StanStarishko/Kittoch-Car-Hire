@@ -308,7 +308,7 @@ router.post("/:collection", async (req, res) => {
  * - sortBy (default: {}) - sorting configuration, e.g., { "field": "asc"|"desc" }
  * - fields (default: []) - fields to return in response
  */
-router.post("/:collection", async (req, res) => {
+router.post("/list/:collection", async (req, res) => {
   try {
     const { collection } = req.params;
     const { page = 0, limit = 0, sortBy = {}, fields = [] } = req.body;

@@ -4,7 +4,7 @@ import {
   formatDate,
 } from "./utilities.js";
 
-let dataRecordID = null;
+let dataRecordID = "";
 
 
 async function setupBookingFieldsHandling(schema) {
@@ -35,7 +35,6 @@ async function setupBookingFieldsHandling(schema) {
     }
 
     carIdField.disabled = false;
-    console.log("ku-ku");
     
     // Fetch all vehicles and filter available ones
     const response = await fetch('https://kittoch-car-hire.onrender.com/api/universalCRUD/Vehicle');
@@ -48,7 +47,8 @@ async function setupBookingFieldsHandling(schema) {
           vehicle._id,
           new Date(startDateField.value),
           new Date(returnDateField.value),
-          false
+          false,
+          dataRecordID
         );
         return isAvailable ? vehicle : null;
       })
@@ -331,7 +331,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to fetch options from referenced collections
   async function fetchOptionsFromCollection(selectElement, collectionName) {
     try {
-      const response = await fetch(`${apiUrl}/${collectionName}`);
+      const response = await fetch(`${apiUrl}/list/${collectionName}`);
       const items = await response.json();
 
       items.forEach((item) => {
