@@ -1,4 +1,5 @@
 import {
+  getCarTitle,
   checkVehicleAvailability,
   formatDate,
 } from "./utilities.js";
@@ -148,7 +149,21 @@ $(document).ready(() => {
       const response = await fetch(`${apiUrl}/${collection}`);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
+      const requestData = await response.json();
+      let data = null;
+
+      // Fetch additional data for 'Booking' collection
+      if (collection === "Booking") {
+        data = await Promise.all(
+          requestData.map(async (item) => {
+            const [customer, car] = await Promise.all([
+              fetchOptionsFromCollection(item.CustomerId, "Customer"),
+              fetchOptionsFromCollection(item.CarId, "Vehicle"),
+            ]);
+            return { ...item, customer, car };
+          })
+        );
+      }
 
       const tableBody = $(tableBodySelector);
       tableBody.empty();
@@ -176,84 +191,45 @@ $(document).ready(() => {
       "#bookingTableBody",
       async (booking, tableBody) => {
         try {
-          const customerId = await fetchOptionsFromCollection(
-            booking.CustomerId,
-            "Customer"
-          );
-
-          const carId = await fetchOptionsFromCollection(
-            booking.CarId,
-            "Vehicle"
-          );
-
           tableBody.append(`
-                <tr>
-                    <td>${formatDate(booking.BookingDate)}</td>
-                    <td>${customerId || "N/A"}</td>
-                    <td>${carId || "N/A"}</td>
-                    <td>${formatDate(booking.StartDate)}</td>
-                    <td>${booking.PickupLocation}</td>
-                    <td>${formatDate(booking.ReturnDate)}</td>
-                    <td>${booking.DropoffLocation}</td>
-                    <td>${createActionButtons(
-                      booking._id,
-                      booking.BookingId,
-                      "Booking"
-                    )}</td>
-                </tr>
-            `);
+          <tr>
+            <td>${formatDate(booking.BookingDate)}</td>
+            <td>${booking.customer.CustomerId || "N/A"}</td>
+            <td>${getCarTitle(booking.car) || "N/A"}</td>
+            <td>${formatDate(booking.StartDate)}</td>
+            <td>${booking.PickupLocation}</td>
+            <td>${formatDate(booking.ReturnDate)}</td>
+            <td>${booking.DropoffLocation}</td>
+            <td>${createActionButtons(
+              booking._id,
+              booking.BookingId,
+              "Booking"
+            )}</td>
+          </tr>
+        `);
         } catch (error) {
           console.error("Error loading booking details:", error);
           tableBody.append(`
-                <tr>
-                    <td>${formatDate(booking.BookingDate)}</td>
-                    <td>Error loading customer</td>
-                    <td>${booking.CarId}</td>
-                    <td>${formatDate(booking.StartDate)}</td>
-                    <td>${booking.PickupLocation}</td>
-                    <td>${formatDate(booking.ReturnDate)}</td>
-                    <td>${booking.DropoffLocation}</td>
-                    <td>${createActionButtons(
-                      booking._id,
-                      booking.BookingId,
-                      "Booking"
-                    )}</td>
-                </tr>
-            `);
+          <tr>
+            <td>${formatDate(booking.BookingDate)}</td>
+            <td>Error loading customer</td>
+            <td>Error loading car</td>
+            <td>${formatDate(booking.StartDate)}</td>
+            <td>${booking.PickupLocation}</td>
+            <td>${formatDate(booking.ReturnDate)}</td>
+            <td>${booking.DropoffLocation}</td>
+            <td>${createActionButtons(
+              booking._id,
+              booking.BookingId,
+              "Booking"
+            )}</td>
+          </tr>
+        `);
         }
       }
     );
 
-  /**
-   * Checks vehicle availability and updates the UI accordingly
-   * @param {string} vehicleId - The ID of the vehicle to check
-   * @param {HTMLElement} cell - The table cell to update
-   * @returns {Promise<void>}
-   */
-  async function updateVehicleAvailability(id, vehicleId, cell, bookButton) {
-    try {
-      const result = await checkVehicleAvailability(vehicleId);
-      cell.textContent = result ? "Available" : "Booked";
-      cell.classList.add(result ? "text-success" : "text-danger");
-      createActionButtons(id, vehicleId, "Vehicle", result);
-
-      // Toggle booking button visibility based on availability
-      if (bookButton) {
-        bookButton.style.display = result ? "inline-block" : "none";
-      }
-
-      cell.value = result;
-    } catch (error) {
-      cell.textContent = "Status Unknown";
-      cell.classList.add("text-warning");
-      console.error(
-        `Failed to check availability for vehicle ${vehicleId}:`,
-        error
-      );
-    }
-  }
-
-  // Modified loadVehicles function
+  // Load Vehicles
   const loadVehicles = () =>
     loadTableData("Vehicle", "#vehicleTableBody", (vehicle, tableBody) => {
       const row = document.createElement("tr");
@@ -286,24 +262,19 @@ $(document).ready(() => {
       row.querySelector(".availability-cell").replaceWith(availabilityCell);
       row.querySelector(".date-cell").replaceWith(dateInput);
 
+      const bookButton = row.querySelector(".book-vehicle-btn");
+
       // Add date change handler
       dateInput.addEventListener("change", () => {
         handleDateChange(dateInput, vehicle._id, availabilityCell, bookButton);
       });
 
-      const bookButton = row.querySelector(".book-vehicle-btn");
-
-      // Initial availability check
-      updateVehicleAvailability(
-        vehicle._id,
-        vehicle.vehicleId,
-        availabilityCell,
-        bookButton
-      );
+      handleDateChange(dateInput, vehicle._id, availabilityCell, bookButton);
 
       tableBody.append(row);
     });
 
+  // Load Customers
   const loadCustomers = () =>
     loadTableData("Customer", "#customerTableBody", (customer, tableBody) => {
       tableBody.append(`
@@ -323,6 +294,7 @@ $(document).ready(() => {
             `);
     });
 
+  // Load Employees
   const loadEmployees = () =>
     loadTableData("Employee", "#employeeTableBody", (employee, tableBody) => {
       tableBody.append(`
@@ -438,7 +410,8 @@ $(document).ready(() => {
 
         if (data.results && data.results.length > 0) {
           const record = data.results[0];
-          return record[`${collectionName}Id`];
+          //return record[`${collectionName}Id`];
+          return record;
         } else {
           return undefined;
         }

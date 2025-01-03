@@ -50,6 +50,7 @@ router.use((req, res, next) => {
  * - Single date availability filtering:
  *   - noAvailableDate: finds records where date is within StartDate and ReturnDate
  *   - availableDate: finds records where date is outside StartDate and ReturnDate
+ * - Record exclusion/inclusion based on ignoreRecord and insideDateRanges
  * - Pagination
  * - Sorting
  * - Field selection
@@ -62,11 +63,12 @@ router.post("/filtered/:collection", async (req, res) => {
       filters = {},
       dateRanges = {},
       insideDateRanges = true,
-      page = 1,
-      limit = 10,
+      page = 0,
+      limit = 0,
       sortBy = {},
       fields = [],
       search = "",
+      ignoreRecord = "",
     } = req.body;
 
     if (!mongoose.models[collection]) {
@@ -78,6 +80,15 @@ router.post("/filtered/:collection", async (req, res) => {
 
     const Model = mongoose.model(collection);
     let query = {};
+
+    // Handle ignoreRecord based on insideDateRanges
+    if (ignoreRecord) {
+      if (insideDateRanges) {
+        query._id = { $ne: ignoreRecord };
+      } else {
+        query._id = ignoreRecord;
+      }
+    }
 
     // Add basic filters
     Object.keys(filters).forEach((key) => {
@@ -289,15 +300,63 @@ router.post("/:collection", async (req, res) => {
   }
 });
 
-// Get all documents from the specified collection
-router.get("/:collection", async (req, res) => {
+/**
+ * Get documents from the specified collection with pagination and sorting
+ * Accepts in body:
+ * - page (default: 0) - page number
+ * - limit (default: 0) - items per page
+ * - sortBy (default: {}) - sorting configuration, e.g., { "field": "asc"|"desc" }
+ * - fields (default: []) - fields to return in response
+ */
+router.post("/:collection", async (req, res) => {
   try {
     const { collection } = req.params;
+    const { page = 0, limit = 0, sortBy = {}, fields = [] } = req.body;
+
+    if (!mongoose.models[collection]) {
+      return res.status(404).json({
+        error: `Collection ${collection} not found`,
+        availableCollections: Object.keys(mongoose.models),
+      });
+    }
+
     const Model = mongoose.model(collection);
-    const results = await Model.find();
-    res.status(200).json(results);
+    const skip = (page - 1) * limit;
+
+    // Configure sorting
+    const sort = {};
+    Object.keys(sortBy).forEach((field) => {
+      sort[field] = sortBy[field] === "desc" ? -1 : 1;
+    });
+
+    const fieldSelection = fields.length > 0 ? fields.join(" ") : "";
+
+    // Get paginated and sorted results
+    const results = await Model.find()
+      .select(fieldSelection)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // Get total count for pagination
+    const total = await Model.countDocuments();
+
+    res.status(200).json({
+      results,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+        limit: parseInt(limit),
+      },
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Get collection endpoint error:", error);
+    res.status(500).json({
+      error: error.message,
+      details: "Server error in get collection endpoint",
+    });
   }
 });
 

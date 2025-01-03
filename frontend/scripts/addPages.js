@@ -1,14 +1,21 @@
 import {
+  getCarTitle,
   checkVehicleAvailability,
   formatDate,
 } from "./utilities.js";
+
+let dataRecordID = null;
+
 
 async function setupBookingFieldsHandling(schema) {
   const carIdField = document.getElementById('CarId');
   const startDateField = document.getElementById('StartDate');
   const returnDateField = document.getElementById('ReturnDate');
   
-  if (!carIdField || !startDateField || !returnDateField) return;
+  if (!carIdField || !startDateField || !returnDateField) {
+    carIdField.disabled = true;
+    return;
+  };
   
   const isCarIdReadonly = schema?.CarId?.metadata?.readonly || false;
   
@@ -17,65 +24,62 @@ async function setupBookingFieldsHandling(schema) {
     carIdField.disabled = !isCarIdReadonly;
   }
 
-  async function validateAvailability() {
-    if (!carIdField.value || !startDateField.value || !returnDateField.value) return;
-
-    const isAvailable = await checkVehicleAvailability(
-      carIdField.value,
-      new Date(startDateField.value),
-      new Date(returnDateField.value)
-    );
-
-    if (!isAvailable) {
-      const changeDate = confirm('Vehicle is not available for selected dates. Would you like to clear the dates?');
-      if (changeDate) {
-        startDateField.value = '';
-        returnDateField.value = '';
-      } else {
-        carIdField.value = '';
-      }
-    }
-  }
+  console.log(`dataRecordID: ${dataRecordID}`);
+  //updateAvailableVehicles();
 
   async function updateAvailableVehicles() {
     if (!startDateField.value || !returnDateField.value) {
-      carIdField.disabled = !isCarIdReadonly;
+      //carIdField.disabled = !isCarIdReadonly;
+      carIdField.disabled = true;
       return;
     }
 
     carIdField.disabled = false;
+    console.log("ku-ku");
     
     // Fetch all vehicles and filter available ones
     const response = await fetch('https://kittoch-car-hire.onrender.com/api/universalCRUD/Vehicle');
     const vehicles = await response.json();
+    const currentCar = carIdField.value;
     
     const availableVehicles = await Promise.all(
       vehicles.map(async vehicle => {
         const isAvailable = await checkVehicleAvailability(
           vehicle._id,
           new Date(startDateField.value),
-          new Date(returnDateField.value)
+          new Date(returnDateField.value),
+          false
         );
         return isAvailable ? vehicle : null;
       })
     );
 
     // Update CarId options
+    let isCurrentVehicle = false;
     carIdField.innerHTML = '<option value="">Select Vehicle</option>';
     availableVehicles
       .filter(v => v !== null)
       .forEach(vehicle => {
         const option = document.createElement('option');
         option.value = vehicle._id;
-        option.textContent = vehicle.VehicleId || vehicle.name || vehicle._id;
+        if (option.value === currentCar) {
+          isCurrentVehicle = true;
+        }
+        option.textContent = getCarTitle(vehicle) || "N/A";
         carIdField.appendChild(option);
       });
-  }
+
+      if (isCurrentVehicle) {
+        carIdField.value = currentCar;
+      } else {
+        alert("Vehicle is not available for selected dates.\nSo, the current vehicle has been removed.");
+      }
+      
+    }
 
   // Event Listeners
   startDateField.addEventListener('change', updateAvailableVehicles);
   returnDateField.addEventListener('change', updateAvailableVehicles);
-  carIdField.addEventListener('change', validateAvailability);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -86,7 +90,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const urlParams = new URLSearchParams(window.location.search);
   const collection = urlParams.get("collection") || "Employee";
   const recordId = urlParams.get("id");
-  let dataRecordID = null;
 
   const returnUrl =
     urlParams.get("returnUrl") ||
@@ -334,8 +337,11 @@ document.addEventListener("DOMContentLoaded", function () {
       items.forEach((item) => {
         const optionElement = document.createElement("option");
         optionElement.value = item._id;
-        optionElement.textContent =
-          item[`${collectionName}Id`] || item.name || item.title || item._id;
+        optionElement.textContent = 
+          collectionName === "Vehicle" ? 
+                                getCarTitle(item) : 
+                                item[`${collectionName}Id`] 
+          || "N/A";
         selectElement.appendChild(optionElement);
       });
     } catch (error) {

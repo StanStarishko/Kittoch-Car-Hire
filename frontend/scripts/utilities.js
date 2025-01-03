@@ -6,6 +6,10 @@
 }
  */
 
+export function getCarTitle(car) {
+  return `${car.VehicleId} ${car.Make} ${car.Model}`
+}
+
 /**
  * Checks vehicle availability for a given date range or single date
  * @param {string} recordId - Vehicle ID to check
@@ -71,7 +75,8 @@ export async function checkVehicleAvailability(
 
     bodyJSON = JSON.stringify({
       filters: {
-        CarId: recordId
+        CarId: recordId,
+        insideDateRanges: inside
       },
       dateRanges,
     });
@@ -103,6 +108,7 @@ export async function checkVehicleAvailability(
     }
 
     const data = await response.json();
+    console.log(`recordId: ${recordId}, data.results.length: ${data.results.length}`);
     return !(data.results && data.results.length > 0);
   } catch (error) {
     console.error("Availability check failed:", error);
@@ -114,5 +120,10 @@ export async function checkVehicleAvailability(
 export function formatDate(dateString) {
   if (!dateString) return "";
   const date = new Date(dateString);
-  return date.toISOString().split("T")[0];
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear(); // Год
+
+  return `${day}-${month}-${year}`;
 }
