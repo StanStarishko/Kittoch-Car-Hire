@@ -33,18 +33,6 @@
     text-justify: auto;
 }
 
-@media (-ms-high-contrast: active), (forced-colors: active) {
-    /* Your general contrast theme styles */
-}
-
-@media (-ms-high-contrast: black-on-white), (forced-colors: active) and (prefers-color-scheme: light) {
-    /* Your specific light contrast theme styles */
-}
-
-@media (-ms-high-contrast: white-on-black), (forced-colors: active) and (prefers-color-scheme: dark) {
-    /* Your specific dark contrast theme styles */
-}
-
 /* For elements that need to opt-out of contrast theme styles */
 .opt-out-of-high-contrast {
     -ms-high-contrast-adjust: none;
@@ -76,4 +64,134 @@
 
 .dropdown-item:hover {
     background-color: #f8f9fa;
+}
+
+/* Responsive table styles for narrow screens */
+@media screen and (max-width: 768px) {
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+    
+    thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    tr {
+        margin-bottom: 1rem;
+        border: 1px solid #ccc;
+    }
+    
+    td {
+        position: relative;
+        padding-left: 50% !important;
+        text-align: left !important;
+        min-height: 45px;
+        display: flex !important;
+        align-items: center;
+    }
+    
+    td::before {
+        position: absolute;
+        left: 12px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+    }
+    
+    /* Custom labels for Booking table */
+    #bookingTableBody td:nth-of-type(1):before { content: "Booking Date"; }
+    #bookingTableBody td:nth-of-type(2):before { content: "Customer"; }
+    #bookingTableBody td:nth-of-type(3):before { content: "Car"; }
+    #bookingTableBody td:nth-of-type(4):before { content: "Start Date"; }
+    #bookingTableBody td:nth-of-type(5):before { content: "Pick Up Location"; }
+    #bookingTableBody td:nth-of-type(6):before { content: "Return Date"; }
+    #bookingTableBody td:nth-of-type(7):before { content: "Drop Off Location"; }
+    #bookingTableBody td:nth-of-type(8):before { content: "Actions"; }
+    
+    /* Custom labels for Vehicle table */
+    #vehicleTableBody td:nth-of-type(1):before { content: "Car"; }
+    #vehicleTableBody td:nth-of-type(2):before { content: "Make"; }
+    #vehicleTableBody td:nth-of-type(3):before { content: "Model"; }
+    #vehicleTableBody td:nth-of-type(4):before { content: "Fuel"; }
+    #vehicleTableBody td:nth-of-type(5):before { content: "Cost Per Day"; }
+    #vehicleTableBody td:nth-of-type(6):before { content: "Availability"; }
+    #vehicleTableBody td:nth-of-type(7):before { content: "Availability Date"; }
+    #vehicleTableBody td:nth-of-type(8):before { content: "Actions"; }
+    
+    /* Custom labels for Customer table */
+    #customerTableBody td:nth-of-type(1):before { content: "Email"; }
+    #customerTableBody td:nth-of-type(2):before { content: "First Name"; }
+    #customerTableBody td:nth-of-type(3):before { content: "Second Name"; }
+    #customerTableBody td:nth-of-type(4):before { content: "Date of Birth"; }
+    #customerTableBody td:nth-of-type(5):before { content: "Gender"; }
+    #customerTableBody td:nth-of-type(6):before { content: "Phone"; }
+    #customerTableBody td:nth-of-type(7):before { content: "Actions"; }
+    
+    /* Custom labels for Employee table */
+    #employeeTableBody td:nth-of-type(1):before { content: "Email"; }
+    #employeeTableBody td:nth-of-type(2):before { content: "First Name"; }
+    #employeeTableBody td:nth-of-type(3):before { content: "Second Name"; }
+    #employeeTableBody td:nth-of-type(4):before { content: "Date of Birth"; }
+    #employeeTableBody td:nth-of-type(5):before { content: "Gender"; }
+    #employeeTableBody td:nth-of-type(6):before { content: "Phone"; }
+    #employeeTableBody td:nth-of-type(7):before { content: "Actions"; }
+    
+    /* Adjust button layout */
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Navigation adjustments */
+    .nav {
+        flex-direction: column;
+    }
+    
+    .nav-item {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Font scaling for high resolution screens */
+@media screen and (min-width: 1300px) {
+    body {
+        font-size: 1.5rem;
+    }
+    
+    .btn {
+        font-size: 1.5rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .nav-link {
+        font-size: 1.5rem;
+    }
+    
+    h2 {
+        font-size: 2.25rem;
+    }
+    
+    .table {
+        font-size: 1.5rem;
+    }
+    
+    .footer {
+        font-size: 1.25rem;
+    }
+}
+
+/* Additional responsive adjustments */
+@media screen and (max-width: 576px) {
+    .logo {
+        width: 180px;
+    }
+    
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
 }

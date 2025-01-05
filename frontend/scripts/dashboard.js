@@ -219,13 +219,14 @@ $(document).ready(() => {
             )}</td>
           </tr>
         `);
-        } catch (error) {
+        } 
+        catch (error) {
           console.error("Error loading booking details:", error);
           tableBody.append(`
           <tr>
             <td>${formatDate(booking.BookingDate)}</td>
-            <td>Error loading customer</td>
-            <td>Error loading car</td>
+            <td>N/A</td>
+            <td>N/A</td>
             <td>${formatDate(booking.StartDate)}</td>
             <td>${booking.PickupLocation}</td>
             <td>${formatDate(booking.ReturnDate)}</td>
