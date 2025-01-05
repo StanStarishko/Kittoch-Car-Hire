@@ -23,7 +23,7 @@ export async function pingServer() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.PING_TIMEOUT);
 
-    const response = await fetch(`${CONFIG.API_URL}/api/ping`, {
+    const response = await fetch(`${CONFIG.API_URL}/api/universalCRUD/ping`, {
       signal: controller.signal,
     });
 

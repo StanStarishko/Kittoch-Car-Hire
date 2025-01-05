@@ -1,4 +1,4 @@
-import { createServerWakeupService } from "./utilities";
+import { createServerWakeupService } from "./utilities.js";
 
 const wakeupService = createServerWakeupService();
 wakeupService.start();
