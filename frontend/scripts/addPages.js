@@ -1,30 +1,31 @@
 import {
   getCarTitle,
   checkVehicleAvailability,
-  formatDate,
+  createServerWakeupService,
 } from "./utilities.js";
+
+const wakeupService = createServerWakeupService();
+wakeupService.start();
 
 let dataRecordID = "";
 
-
 async function setupBookingFieldsHandling(schema) {
-  const carIdField = document.getElementById('CarId');
-  const startDateField = document.getElementById('StartDate');
-  const returnDateField = document.getElementById('ReturnDate');
-  
+  const carIdField = document.getElementById("CarId");
+  const startDateField = document.getElementById("StartDate");
+  const returnDateField = document.getElementById("ReturnDate");
+
   if (!carIdField || !startDateField || !returnDateField) {
     carIdField.disabled = true;
     return;
-  };
-  
+  }
+
   const isCarIdReadonly = schema?.CarId?.metadata?.readonly || false;
-  
+
   // Disable CarId initially if dates are empty
   if (!startDateField.value || !returnDateField.value) {
     carIdField.disabled = !isCarIdReadonly;
   }
 
-  console.log(`dataRecordID: ${dataRecordID}`);
   //updateAvailableVehicles();
 
   async function updateAvailableVehicles() {
@@ -35,14 +36,23 @@ async function setupBookingFieldsHandling(schema) {
     }
 
     carIdField.disabled = false;
-    
+
     // Fetch all vehicles and filter available ones
-    const response = await fetch('https://kittoch-car-hire.onrender.com/api/universalCRUD/Vehicle');
-    const vehicles = await response.json();
+    const response = await fetch(
+      "https://kittoch-car-hire.onrender.com/api/universalCRUD/list/Vehicle",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const { results } = await response.json();
+
     const currentCar = carIdField.value;
-    
+
     const availableVehicles = await Promise.all(
-      vehicles.map(async vehicle => {
+      results.map(async (vehicle) => {
         const isAvailable = await checkVehicleAvailability(
           vehicle._id,
           new Date(startDateField.value),
@@ -58,9 +68,9 @@ async function setupBookingFieldsHandling(schema) {
     let isCurrentVehicle = false;
     carIdField.innerHTML = '<option value="">Select Vehicle</option>';
     availableVehicles
-      .filter(v => v !== null)
-      .forEach(vehicle => {
-        const option = document.createElement('option');
+      .filter((v) => v !== null)
+      .forEach((vehicle) => {
+        const option = document.createElement("option");
         option.value = vehicle._id;
         if (option.value === currentCar) {
           isCurrentVehicle = true;
@@ -69,17 +79,18 @@ async function setupBookingFieldsHandling(schema) {
         carIdField.appendChild(option);
       });
 
-      if (isCurrentVehicle) {
-        carIdField.value = currentCar;
-      } else {
-        alert("Vehicle is not available for selected dates.\nSo, the current vehicle has been removed.");
-      }
-      
+    if (isCurrentVehicle) {
+      carIdField.value = currentCar;
+    } else if (currentCar) {
+      alert(
+        "Vehicle is not available for selected dates.\nSo, the current vehicle has been removed."
+      );
     }
+  }
 
   // Event Listeners
-  startDateField.addEventListener('change', updateAvailableVehicles);
-  returnDateField.addEventListener('change', updateAvailableVehicles);
+  startDateField.addEventListener("change", updateAvailableVehicles);
+  returnDateField.addEventListener("change", updateAvailableVehicles);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -331,17 +342,21 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to fetch options from referenced collections
   async function fetchOptionsFromCollection(selectElement, collectionName) {
     try {
-      const response = await fetch(`${apiUrl}/list/${collectionName}`);
-      const items = await response.json();
+      const response = await fetch(`${apiUrl}/list/${collectionName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const { results } = await response.json();
 
-      items.forEach((item) => {
+      results.forEach((item) => {
         const optionElement = document.createElement("option");
         optionElement.value = item._id;
-        optionElement.textContent = 
-          collectionName === "Vehicle" ? 
-                                getCarTitle(item) : 
-                                item[`${collectionName}Id`] 
-          || "N/A";
+        optionElement.textContent =
+          collectionName === "Vehicle"
+            ? getCarTitle(item)
+            : item[`${collectionName}Id`] || "N/A";
         selectElement.appendChild(optionElement);
       });
     } catch (error) {
@@ -579,11 +594,7 @@ document.addEventListener("DOMContentLoaded", function () {
         Object.entries(prefillData).forEach(([key, value]) => {
           const element = document.getElementById(key);
           if (element) {
-            if (element.type === "date") {
-              element.value = formatDate(new Date(value));
-            } else {
-              element.value = value;
-            }
+            element.value = value;
 
             // Trigger change event for any dependent fields
             element.dispatchEvent(new Event("change", { bubbles: true }));
@@ -591,10 +602,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
 
-      if (collection === 'Booking') {
+      if (collection === "Booking") {
         await setupBookingFieldsHandling(schema);
       }
-
     })
     .catch((error) => {
       console.error("Error:", error);

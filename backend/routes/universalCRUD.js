@@ -37,6 +37,11 @@ router.use((req, res, next) => {
   next();
 });
 
+// for Server Wake Up
+router.get('/ping', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 /**
  * Universal CRUD Routes for collections
  */

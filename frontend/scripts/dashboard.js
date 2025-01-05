@@ -2,7 +2,11 @@ import {
   getCarTitle,
   checkVehicleAvailability,
   formatDate,
+  createServerWakeupService,
 } from "./utilities.js";
+
+const wakeupService = createServerWakeupService();
+wakeupService.start();
 
 const currentDate = new Date();
 
@@ -146,16 +150,22 @@ $(document).ready(() => {
     showLoading(tableBodySelector);
 
     try {
-      const response = await fetch(`${apiUrl}/list/${collection}`);
+      const response = await fetch(`${apiUrl}/list/${collection}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
-      const requestData = await response.json();
+      const { results } = await response.json();
       let data = null;
 
       // Fetch additional data for 'Booking' collection
       if (collection === "Booking") {
         data = await Promise.all(
-          requestData.map(async (item) => {
+          results.map(async (item) => {
             const [customer, car] = await Promise.all([
               fetchOptionsFromCollection(item.CustomerId, "Customer"),
               fetchOptionsFromCollection(item.CarId, "Vehicle"),
@@ -163,6 +173,8 @@ $(document).ready(() => {
             return { ...item, customer, car };
           })
         );
+      } else {
+        data = results;
       }
 
       const tableBody = $(tableBodySelector);
@@ -239,7 +251,7 @@ $(document).ready(() => {
       // Create date input cell
       const dateInput = document.createElement("input");
       dateInput.type = "date";
-      dateInput.value = formatDate(currentDate);
+      dateInput.value = formatDate(currentDate, true);
       dateInput.className = "date-cell form-control text-center";
 
       row.innerHTML = `
@@ -345,8 +357,8 @@ $(document).ready(() => {
     window.location.href = `/frontend/html/addPages.html?collection=Booking&returnUrl=${returnUrl}&prefill=${encodeURIComponent(
       JSON.stringify({
         CarId: vehicleId,
-        BookingDate: formatDate(new Date()),
-        StartDate: dateInput,
+        BookingDate: formatDate(currentDate, true),
+        StartDate: formatDate(dateInput, true),
       })
     )}`;
   });
