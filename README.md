@@ -2,13 +2,14 @@
 ---
 
 ## Resources:
-- [Project Brief](https://github.com/StanStarishko/Kittoch-Car-Hire/blob/main/docs/Project%20Brief.pdf)
+- [**Project Brief**](https://github.com/StanStarishko/Kittoch-Car-Hire/blob/main/docs/Project%20Brief.pdf)
+- [**Project Report**](https://github.com/StanStarishko/Kittoch-Car-Hire/blob/main/docs/Project%20Report.pdf)
 - [**REST API** documentation](https://documenter.getpostman.com/view/8437769/2sAYJ9AdsE)
-- Source Code:
+- **Source Code**:
    - [**Backend**](https://github.com/StanStarishko/Kittoch-Car-Hire/tree/main/backend)
    - [**Frontend**](https://github.com/StanStarishko/Kittoch-Car-Hire/tree/main/frontend)
 - [**Project Documentation**](https://github.com/StanStarishko/Kittoch-Car-Hire/tree/main/docs)
-- [Web site](https://kittoch-car-hire.netlify.app/)
+- [**Web site**](https://kittoch-car-hire.netlify.app/)
 
 ---
 
